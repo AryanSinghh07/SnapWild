@@ -17,7 +17,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "SnapWild needs camera access so Vanya can identify wildlife for you.",
         "NSPhotoLibraryUsageDescription": "SnapWild needs photo library access to identify animals from your gallery.",
-        "NSLocationWhenInUseUsageDescription": "SnapWild saves your catch location so you can see it on your personal map."
+        "NSLocationWhenInUseUsageDescription": "SnapWild saves your catch location so you can see it on your personal map.",
+        "NSMotionUsageDescription": "SnapWild counts your steps while you explore nature outdoors."
       }
     },
     "android": {
@@ -31,7 +32,8 @@
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACTIVITY_RECOGNITION"
       ]
     },
     "web": {

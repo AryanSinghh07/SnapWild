@@ -8,7 +8,7 @@ import { C } from '../theme/colors';
 import DiscoverStack    from './DiscoverStack';
 import SnapStack        from './SnapStack';
 import CollectionStack  from './CollectionStack';
-import ProfileScreen    from '../screens/main/ProfileScreen';
+import ProfileStack     from './ProfileStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -67,7 +67,7 @@ export default function MainTabNavigator() {
       <Tab.Screen name="Discover"   component={DiscoverStack}    options={{ headerShown: false }} />
       <Tab.Screen name="Snap"       component={SnapStack}        options={{ headerShown: false }} />
       <Tab.Screen name="Collection" component={CollectionStack}  options={{ headerShown: false }} />
-      <Tab.Screen name="Profile"    component={ProfileScreen}    options={{ headerTitle: '⚡ Profile'        }} />
+      <Tab.Screen name="Profile"    component={ProfileStack}     options={{ headerShown: false }} />
     </Tab.Navigator>
   );
 }

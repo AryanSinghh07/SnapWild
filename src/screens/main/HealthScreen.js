@@ -1,0 +1,459 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  Dimensions, Platform,
+} from 'react-native';
+import { Pedometer } from 'expo-sensors';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import useHealthStore from '../../store/useHealthStore';
+import useCatchStore  from '../../store/useCatchStore';
+import { C } from '../../theme/colors';
+
+const { width } = Dimensions.get('window');
+const BAR_MAX_H = 80;
+
+const MOODS = [
+  { emoji: '😔', label: 'Low',     score: 1 },
+  { emoji: '😐', label: 'Okay',    score: 2 },
+  { emoji: '🙂', label: 'Good',    score: 3 },
+  { emoji: '😊', label: 'Great',   score: 4 },
+  { emoji: '🤩', label: 'Amazing', score: 5 },
+];
+
+function scoreColor(score) {
+  if (score >= 80) return C.green;
+  if (score >= 50) return C.accent;
+  if (score >= 25) return C.orange;
+  return C.red;
+}
+
+export default function HealthScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+
+  const getToday       = useHealthStore(s => s.getToday);
+  const getNatureScore = useHealthStore(s => s.getNatureScore);
+  const getWeeklyStats = useHealthStore(s => s.getWeeklyStats);
+  const logMood        = useHealthStore(s => s.logMood);
+  const startSession   = useHealthStore(s => s.startSession);
+  const endSession     = useHealthStore(s => s.endSession);
+  const setTodaySteps  = useHealthStore(s => s.setTodaySteps);
+  const sessionStart   = useHealthStore(s => s.sessionStart);
+
+  const catches        = useCatchStore(s => s.catches);
+
+  const today          = getToday();
+  const todayCatches   = catches.filter(c => c.caughtAt?.startsWith(new Date().toISOString().slice(0, 10))).length;
+  const natureScore    = getNatureScore(todayCatches);
+  const weekly         = getWeeklyStats();
+  const scoreCol       = scoreColor(natureScore);
+
+  // Live pedometer
+  const [pedometerAvail, setPedometerAvail] = useState(false);
+  const [sessionSteps,   setSessionSteps]   = useState(0);
+  const subRef = useRef(null);
+
+  useEffect(() => {
+    Pedometer.isAvailableAsync().then(avail => {
+      setPedometerAvail(avail);
+      if (avail) {
+        // Get today's historical steps
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        Pedometer.getStepCountAsync(start, new Date())
+          .then(r => setTodaySteps(r.steps))
+          .catch(() => {});
+      }
+    });
+    return () => subRef.current?.remove();
+  }, []);
+
+  // Session timer display
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef(null);
+  useEffect(() => {
+    if (sessionStart) {
+      timerRef.current = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - new Date(sessionStart).getTime()) / 1000));
+      }, 1000);
+    } else {
+      clearInterval(timerRef.current);
+      setElapsed(0);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [sessionStart]);
+
+  const toggleSession = () => {
+    if (sessionStart) {
+      // Stop — unsubscribe pedometer
+      subRef.current?.remove();
+      subRef.current = null;
+      endSession();
+    } else {
+      // Start — subscribe pedometer
+      if (pedometerAvail) {
+        setSessionSteps(0);
+        subRef.current = Pedometer.watchStepCount(({ steps }) => {
+          setSessionSteps(steps);
+        });
+      }
+      startSession();
+    }
+  };
+
+  const fmtTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+
+  const maxSteps = Math.max(...weekly.map(d => d.steps), 1);
+
+  return (
+    <View style={[s.screen, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color={C.text} />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Health Tracking</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 50 }} showsVerticalScrollIndicator={false}>
+
+        {/* Nature Therapy Score */}
+        <View style={s.scoreCard}>
+          <View style={s.scoreLeft}>
+            <Text style={s.scoreLabel}>Nature Therapy Score</Text>
+            <Text style={[s.scoreNum, { color: scoreCol }]}>{natureScore}</Text>
+            <Text style={s.scoreMax}>/100 today</Text>
+            <View style={[s.scoreBar, { backgroundColor: scoreCol + '20' }]}>
+              <View style={[s.scoreFill, { width: `${natureScore}%`, backgroundColor: scoreCol }]} />
+            </View>
+            <Text style={[s.scoreStatus, { color: scoreCol }]}>
+              {natureScore >= 80 ? '🌟 Excellent!' : natureScore >= 50 ? '🌿 Good going' : natureScore >= 25 ? '👣 Keep moving' : '💤 Just getting started'}
+            </Text>
+          </View>
+          <View style={s.scoreRight}>
+            <ScoreChip icon="footsteps"     label="Steps"   value={today.steps.toLocaleString()} color={C.blue}  />
+            <ScoreChip icon="time-outline"  label="Minutes" value={`${today.minutes}m`}          color={C.green} />
+            <ScoreChip icon="paw"           label="Catches" value={todayCatches}                  color={C.accent}/>
+          </View>
+        </View>
+
+        {/* Outdoor Session */}
+        <View style={s.sessionCard}>
+          <View style={s.sessionTop}>
+            <View>
+              <Text style={s.sessionTitle}>
+                {sessionStart ? '🟢 Session Active' : '⚪ Start Outdoor Session'}
+              </Text>
+              <Text style={s.sessionSub}>
+                {sessionStart
+                  ? `${fmtTime(elapsed)} · ${sessionSteps.toLocaleString()} steps this session`
+                  : 'Track your time and steps outside'}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[s.sessionBtn, sessionStart && s.sessionBtnStop]}
+            onPress={toggleSession}
+            activeOpacity={0.85}
+          >
+            <Ionicons name={sessionStart ? 'stop-circle' : 'play-circle'} size={20} color={C.bg} />
+            <Text style={s.sessionBtnText}>{sessionStart ? 'End Session' : 'Start Session'}</Text>
+          </TouchableOpacity>
+          {!pedometerAvail && (
+            <Text style={s.pedometerNote}>Step counting not available on this device</Text>
+          )}
+        </View>
+
+        {/* Mood Check-in */}
+        <SectionHeader title="Mood Check-in" />
+        <View style={s.moodCard}>
+          <MoodRow
+            label="How do you feel right now?"
+            type="before"
+            current={today.mood_before}
+            onSelect={(emoji) => logMood('before', emoji)}
+          />
+          {today.mood_before && (
+            <>
+              <View style={s.moodDivider} />
+              <MoodRow
+                label="How do you feel after being outside?"
+                type="after"
+                current={today.mood_after}
+                onSelect={(emoji) => logMood('after', emoji)}
+              />
+            </>
+          )}
+          {today.mood_before && today.mood_after && (
+            <View style={s.moodResult}>
+              <Text style={s.moodResultText}>
+                {getMoodInsight(today.mood_before, today.mood_after)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Weekly Steps Chart */}
+        <SectionHeader title="This Week" />
+        <View style={s.chartCard}>
+          <View style={s.chartBars}>
+            {weekly.map((d, i) => {
+              const h   = Math.max((d.steps / maxSteps) * BAR_MAX_H, 4);
+              const today = i === 6;
+              return (
+                <View key={d.key} style={s.chartCol}>
+                  <Text style={s.chartSteps}>
+                    {d.steps > 999 ? `${(d.steps / 1000).toFixed(1)}k` : d.steps || ''}
+                  </Text>
+                  <View style={s.chartBarBg}>
+                    <View style={[s.chartBar, { height: h, backgroundColor: today ? C.accent : C.primary }]} />
+                  </View>
+                  <Text style={[s.chartDay, today && s.chartDayToday]}>{d.label}</Text>
+                </View>
+              );
+            })}
+          </View>
+          <View style={s.chartStats}>
+            <ChartStat label="Avg Steps" value={Math.round(weekly.reduce((a,d)=>a+d.steps,0)/7).toLocaleString()} />
+            <ChartStat label="Total Mins" value={`${weekly.reduce((a,d)=>a+d.minutes,0)}m`} />
+            <ChartStat label="Active Days" value={weekly.filter(d=>d.steps>0||d.minutes>0).length} />
+          </View>
+        </View>
+
+        {/* Breathing exercise */}
+        <SectionHeader title="Mindfulness" />
+        <BreathingCard />
+
+        {/* Health tips */}
+        <SectionHeader title="Nature Tips" />
+        <View style={s.tipsCard}>
+          {[
+            { icon: '🌅', tip: '20 minutes of morning sunlight boosts serotonin and regulates your sleep cycle.' },
+            { icon: '🌿', tip: 'Spending 2 hours/week in nature is linked to significantly better health.' },
+            { icon: '👁️', tip: 'The 20-20-20 rule: every 20 min, look 20 feet away for 20 seconds to rest your eyes.' },
+          ].map((t, i) => (
+            <View key={i} style={[s.tipRow, i < 2 && s.tipBorder]}>
+              <Text style={s.tipEmoji}>{t.icon}</Text>
+              <Text style={s.tipText}>{t.tip}</Text>
+            </View>
+          ))}
+        </View>
+
+      </ScrollView>
+    </View>
+  );
+}
+
+// ── Sub-components ──────────────────────────────────────────────
+
+function ScoreChip({ icon, label, value, color }) {
+  return (
+    <View style={[sc.chip, { borderColor: color + '40' }]}>
+      <Ionicons name={icon} size={14} color={color} />
+      <Text style={[sc.chipVal, { color }]}>{value}</Text>
+      <Text style={sc.chipLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function MoodRow({ label, current, onSelect }) {
+  return (
+    <View>
+      <Text style={s.moodLabel}>{label}</Text>
+      <View style={s.moodRow}>
+        {MOODS.map(m => (
+          <TouchableOpacity
+            key={m.emoji}
+            style={[s.moodBtn, current === m.emoji && s.moodBtnActive]}
+            onPress={() => onSelect(m.emoji)}
+            activeOpacity={0.7}
+          >
+            <Text style={s.moodEmoji}>{m.emoji}</Text>
+            <Text style={[s.moodBtnLabel, current === m.emoji && s.moodBtnLabelActive]}>{m.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function getMoodInsight(before, after) {
+  const bScore = MOODS.find(m => m.emoji === before)?.score ?? 3;
+  const aScore = MOODS.find(m => m.emoji === after)?.score  ?? 3;
+  const diff   = aScore - bScore;
+  if (diff >= 2) return '🌟 Nature gave you a big mood boost today!';
+  if (diff === 1) return '🌿 Your mood improved after being outside.';
+  if (diff === 0) return '😊 Your mood stayed steady — consistency is great!';
+  return '💙 Some days are tough. Nature still helps over time.';
+}
+
+function ChartStat({ label, value }) {
+  return (
+    <View style={s.chartStatItem}>
+      <Text style={s.chartStatVal}>{value}</Text>
+      <Text style={s.chartStatLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function BreathingCard() {
+  const [phase,   setPhase]   = useState('idle'); // idle | inhale | hold | exhale
+  const [counter, setCounter] = useState(0);
+  const timerRef = useRef(null);
+
+  const PHASES = [
+    { key: 'inhale', label: 'Breathe In',  duration: 4, color: C.blue   },
+    { key: 'hold',   label: 'Hold',        duration: 4, color: C.accent },
+    { key: 'exhale', label: 'Breathe Out', duration: 6, color: C.green  },
+  ];
+
+  const startBreathing = () => {
+    let pi = 0, secs = 0;
+    setPhase(PHASES[0].key);
+    setCounter(PHASES[0].duration);
+    timerRef.current = setInterval(() => {
+      secs++;
+      const cur = PHASES[pi];
+      const remaining = cur.duration - secs;
+      if (remaining <= 0) {
+        pi = (pi + 1) % PHASES.length;
+        secs = 0;
+        setPhase(PHASES[pi].key);
+        setCounter(PHASES[pi].duration);
+      } else {
+        setCounter(remaining);
+      }
+    }, 1000);
+  };
+
+  const stopBreathing = () => {
+    clearInterval(timerRef.current);
+    setPhase('idle');
+    setCounter(0);
+  };
+
+  useEffect(() => () => clearInterval(timerRef.current), []);
+
+  const cur = PHASES.find(p => p.key === phase);
+
+  return (
+    <View style={s.breathCard}>
+      <View style={s.breathLeft}>
+        <Text style={s.breathTitle}>Box Breathing</Text>
+        <Text style={s.breathSub}>4-4-6 pattern · reduces stress in 60 seconds</Text>
+        {phase !== 'idle' && (
+          <View style={s.breathPhase}>
+            <Text style={[s.breathPhaseLabel, { color: cur.color }]}>{cur.label}</Text>
+            <Text style={[s.breathCount, { color: cur.color }]}>{counter}</Text>
+          </View>
+        )}
+      </View>
+      <TouchableOpacity
+        style={[s.breathBtn, phase !== 'idle' && { backgroundColor: C.red }]}
+        onPress={phase === 'idle' ? startBreathing : stopBreathing}
+        activeOpacity={0.85}
+      >
+        <Ionicons name={phase === 'idle' ? 'play' : 'stop'} size={18} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function SectionHeader({ title }) {
+  return (
+    <View style={s.secHeader}>
+      <Text style={s.secTitle}>{title}</Text>
+    </View>
+  );
+}
+
+// ── Styles ──────────────────────────────────────────────────────
+
+const sc = StyleSheet.create({
+  chip:      { alignItems: 'center', backgroundColor: C.card2, borderRadius: 12, padding: 10, borderWidth: 1, gap: 2, flex: 1 },
+  chipVal:   { fontSize: 16, fontWeight: 'bold' },
+  chipLabel: { fontSize: 9, color: C.muted, fontWeight: '600' },
+});
+
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.bg },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+  backBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: C.text },
+
+  secHeader: { marginHorizontal: 16, marginTop: 8, marginBottom: 10 },
+  secTitle:  { fontSize: 16, fontWeight: '700', color: C.text },
+
+  // Score
+  scoreCard:   { flexDirection: 'row', gap: 12, backgroundColor: C.card, margin: 16, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: C.border },
+  scoreLeft:   { flex: 1 },
+  scoreLabel:  { fontSize: 11, fontWeight: '700', color: C.muted, letterSpacing: 0.5, marginBottom: 4 },
+  scoreNum:    { fontSize: 52, fontWeight: 'bold', lineHeight: 58 },
+  scoreMax:    { fontSize: 12, color: C.muted, marginBottom: 10 },
+  scoreBar:    { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
+  scoreFill:   { height: 6, borderRadius: 3 },
+  scoreStatus: { fontSize: 12, fontWeight: '700' },
+  scoreRight:  { gap: 8, justifyContent: 'center', width: 88 },
+
+  // Session
+  sessionCard:    { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  sessionTop:     { marginBottom: 14 },
+  sessionTitle:   { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 4 },
+  sessionSub:     { fontSize: 12, color: C.muted },
+  sessionBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: C.primary, borderRadius: 14, paddingVertical: 14, gap: 8 },
+  sessionBtnStop: { backgroundColor: C.red },
+  sessionBtnText: { fontSize: 15, fontWeight: 'bold', color: C.bg },
+  pedometerNote:  { fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 8 },
+
+  // Mood
+  moodCard:   { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  moodLabel:  { fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 18 },
+  moodRow:    { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
+  moodBtn:    { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: C.card2, borderWidth: 1, borderColor: C.border },
+  moodBtnActive: { backgroundColor: C.primary, borderColor: C.accent },
+  moodEmoji:  { fontSize: 22 },
+  moodBtnLabel: { fontSize: 9, color: C.muted, marginTop: 3, fontWeight: '600' },
+  moodBtnLabelActive: { color: C.accent },
+  moodDivider: { height: 1, backgroundColor: C.border, marginVertical: 16 },
+  moodResult:  { marginTop: 14, backgroundColor: C.primary + '30', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: C.primary },
+  moodResultText: { fontSize: 13, color: C.text, textAlign: 'center', fontWeight: '600' },
+
+  // Chart
+  chartCard:    { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  chartBars:    { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: BAR_MAX_H + 48, marginBottom: 12 },
+  chartCol:     { alignItems: 'center', flex: 1, gap: 4 },
+  chartBarBg:   { width: '60%', height: BAR_MAX_H, justifyContent: 'flex-end', backgroundColor: C.border + '50', borderRadius: 6, overflow: 'hidden' },
+  chartBar:     { width: '100%', borderRadius: 6 },
+  chartSteps:   { fontSize: 8, color: C.muted, height: 14, textAlign: 'center' },
+  chartDay:     { fontSize: 10, color: C.muted, fontWeight: '600' },
+  chartDayToday:{ color: C.accent },
+  chartStats:   { flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.border, paddingTop: 14, gap: 8 },
+  chartStatItem:{ flex: 1, alignItems: 'center' },
+  chartStatVal: { fontSize: 16, fontWeight: 'bold', color: C.text },
+  chartStatLabel:{ fontSize: 10, color: C.muted, marginTop: 2 },
+
+  // Breathing
+  breathCard:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  breathLeft:   { flex: 1 },
+  breathTitle:  { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 4 },
+  breathSub:    { fontSize: 12, color: C.muted },
+  breathPhase:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  breathPhaseLabel: { fontSize: 14, fontWeight: '700' },
+  breathCount:  { fontSize: 28, fontWeight: 'bold' },
+  breathBtn:    { width: 48, height: 48, borderRadius: 24, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
+
+  // Tips
+  tipsCard:  { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  tipRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
+  tipBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  tipEmoji:  { fontSize: 22, marginTop: 2 },
+  tipText:   { flex: 1, fontSize: 13, color: C.muted, lineHeight: 20 },
+});

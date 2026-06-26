@@ -22,7 +22,7 @@ const BADGES = [
   { name: 'Explorer',    icon: '🗺️', desc: 'Visit 10 cities',        locked: true },
 ];
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { user, logout, updateUser } = useAuth();
   const catches      = useCatchStore(s => s.catches);
   const getXPByTrack = useCatchStore(s => s.getXPByTrack);
@@ -164,6 +164,20 @@ export default function ProfileScreen() {
           ))}
         </View>
 
+        {/* Health Tracking */}
+        <TouchableOpacity style={s.healthCard} onPress={() => navigation.navigate('Health')} activeOpacity={0.85}>
+          <View style={s.healthLeft}>
+            <View style={s.healthIcon}>
+              <Ionicons name="leaf" size={20} color={C.green} />
+            </View>
+            <View>
+              <Text style={s.healthTitle}>Health Tracking</Text>
+              <Text style={s.healthSub}>Steps · Mood · Nature Score</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        </TouchableOpacity>
+
         {/* Sign out */}
         <TouchableOpacity style={s.signOutBtn} onPress={handleLogout} activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={18} color={C.red} />
@@ -294,6 +308,12 @@ const s = StyleSheet.create({
   badgeNameLocked: { color: C.muted },
   badgeDesc:       { fontSize: 11, color: C.muted, textAlign: 'center' },
   badgeLock:       { position: 'absolute', top: 8, right: 8 },
+
+  healthCard:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, marginBottom: 12, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border },
+  healthLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  healthIcon:  { width: 44, height: 44, borderRadius: 12, backgroundColor: C.green + '20', alignItems: 'center', justifyContent: 'center' },
+  healthTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  healthSub:   { fontSize: 12, color: C.muted, marginTop: 2 },
 
   signOutBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.card, marginHorizontal: 16, borderRadius: 14, paddingVertical: 16, borderWidth: 1, borderColor: C.red + '40' },
   signOutText: { fontSize: 15, fontWeight: '600', color: C.red },
