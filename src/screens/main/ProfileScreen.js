@@ -46,9 +46,15 @@ export default function ProfileScreen() {
         </View>
         <Text style={s.username}>{user?.username ?? 'Explorer'}</Text>
         <Text style={s.phone}>+91 {user?.phone?.slice(0, 5)} {user?.phone?.slice(5)}</Text>
-        <View style={s.levelBadge}>
-          <Ionicons name="flash" size={12} color={C.bg} />
-          <Text style={s.levelText}>Level {user?.level ?? 1}</Text>
+        <View style={s.badgeRow}>
+          <View style={s.levelBadge}>
+            <Ionicons name="flash" size={12} color={C.bg} />
+            <Text style={s.levelText}>Level {user?.level ?? 1}</Text>
+          </View>
+          <View style={s.totalXPBadge}>
+            <Ionicons name="star" size={12} color={C.accent} />
+            <Text style={s.totalXPText}>{totalXP} Total XP</Text>
+          </View>
         </View>
 
         <View style={s.statsRow}>
@@ -137,8 +143,11 @@ const s = StyleSheet.create({
   avatarLetter: { fontSize: 34, fontWeight: 'bold', color: C.text },
   username: { fontSize: 20, fontWeight: 'bold', color: C.text, marginBottom: 4 },
   phone:    { fontSize: 13, color: C.muted, marginBottom: 10 },
-  levelBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.accent, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, gap: 4, marginBottom: 20 },
-  levelText:  { fontSize: 12, fontWeight: 'bold', color: C.bg },
+  badgeRow:     { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  levelBadge:   { flexDirection: 'row', alignItems: 'center', backgroundColor: C.accent, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, gap: 4 },
+  levelText:    { fontSize: 12, fontWeight: 'bold', color: C.bg },
+  totalXPBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card2, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, gap: 4, borderWidth: 1, borderColor: C.border },
+  totalXPText:  { fontSize: 12, fontWeight: 'bold', color: C.accent },
 
   statsRow:    { flexDirection: 'row', width: '100%', justifyContent: 'space-around' },
   stat:        { alignItems: 'center', flex: 1 },

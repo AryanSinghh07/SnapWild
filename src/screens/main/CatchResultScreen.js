@@ -5,8 +5,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { identifyAnimal } from '../../services/gemini';
 import useCatchStore from '../../store/useCatchStore';
+import Toast from '../../components/Toast';
 import { C } from '../../theme/colors';
 
 const { width } = Dimensions.get('window');
@@ -35,9 +37,10 @@ export default function CatchResultScreen({ navigation, route }) {
   const { addCatch, hasCaught } = useCatchStore();
   const insets = useSafeAreaInsets();
 
-  const [state,  setState]  = useState('loading'); // loading | result | notfound | error
-  const [result, setResult] = useState(null);
-  const [saved,  setSaved]  = useState(false);
+  const [state,     setState]     = useState('loading'); // loading | result | notfound | error
+  const [result,    setResult]    = useState(null);
+  const [saved,     setSaved]     = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     identifyAnimal(base64).then(data => {
@@ -54,6 +57,9 @@ export default function CatchResultScreen({ navigation, route }) {
     if (saved) return;
     addCatch({ ...result, photoUri: uri, ...(lat != null ? { lat, lng } : {}) });
     setSaved(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2500);
   };
 
   // ── Loading ─────────────────────────────────────────────────
@@ -97,6 +103,7 @@ export default function CatchResultScreen({ navigation, route }) {
   const alreadyCaught = hasCaught(result.name);
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView
       style={s.bg}
       contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
@@ -211,6 +218,8 @@ export default function CatchResultScreen({ navigation, route }) {
         </View>
       </View>
     </ScrollView>
+    <Toast visible={showToast} message={`${result?.name} added to collection!`} />
+    </View>
   );
 }
 

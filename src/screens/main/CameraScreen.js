@@ -6,6 +6,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../../theme/colors';
@@ -47,6 +48,7 @@ export default function CameraScreen({ navigation }) {
   // ── Take photo ──────────────────────────────────────────────
   const handleCapture = async () => {
     if (capturing || !cameraRef.current) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setCapturing(true);
     try {
       const [photo, loc] = await Promise.all([

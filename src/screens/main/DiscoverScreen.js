@@ -1,32 +1,65 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import useCatchStore from '../../store/useCatchStore';
 import { C } from '../../theme/colors';
 
+const RARITY_COLOR = { Common: C.gray, Uncommon: C.green, Rare: C.blue, Legendary: C.orange };
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+const MISSIONS = [
+  { goal: 1,  title: 'First Catch!',       sub: 'Snap your first wild animal to begin',       xp: 15  },
+  { goal: 3,  title: 'Wild Trio',           sub: 'Catch 3 different animals',                  xp: 50  },
+  { goal: 5,  title: 'Nature Explorer',     sub: 'Build a collection of 5 animals',            xp: 100 },
+  { goal: 10, title: 'Wildlife Watcher',    sub: 'Identify 10 animals with Vanya',             xp: 200 },
+  { goal: 20, title: 'SnapWild Veteran',    sub: 'Reach 20 catches — you\'re a pro!',          xp: 500 },
+];
+
+function currentMission(catchCount) {
+  return MISSIONS.find(m => catchCount < m.goal) ?? MISSIONS[MISSIONS.length - 1];
+}
+
 export default function DiscoverScreen({ navigation }) {
-  const { user } = useAuth();
-  const catches       = useCatchStore(s => s.catches);
-  const getTotalXP    = useCatchStore(s => s.getTotalXP);
-  const uniqueSpecies = useCatchStore(s => s.getUniqueSpecies);
+  const { user }       = useAuth();
+  const catches        = useCatchStore(s => s.catches);
+  const getTotalXP     = useCatchStore(s => s.getTotalXP);
 
   const totalXP    = getTotalXP();
   const catchCount = catches.length;
-  const missionDone = catchCount >= 1;
+  const mission    = currentMission(catchCount);
+  const prevGoal   = MISSIONS[MISSIONS.indexOf(mission) - 1]?.goal ?? 0;
+  const progress   = Math.min((catchCount - prevGoal) / (mission.goal - prevGoal), 1);
+  const recent     = catches.slice(0, 3);
+
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 800);
+  };
 
   const stats = [
-    { label: 'Catches',  value: catchCount,              icon: 'paw'   },
-    { label: 'Total XP', value: totalXP,                 icon: 'flash' },
+    { label: 'Catches',  value: catchCount, icon: 'paw'   },
+    { label: 'Total XP', value: totalXP,    icon: 'flash' },
     { label: 'Streak',   value: `${user?.streak ?? 0}d`, icon: 'flame' },
   ];
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 110 }}>
+    <ScrollView
+      style={s.screen}
+      contentContainerStyle={{ paddingBottom: 110 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} colors={[C.accent]} />}
+    >
       {/* Greeting */}
       <View style={s.greeting}>
         <View>
-          <Text style={s.greetSub}>Good morning,</Text>
+          <Text style={s.greetSub}>{greeting()},</Text>
           <Text style={s.greetName}>{user?.username ?? 'Explorer'} 🌿</Text>
         </View>
         <View style={s.notifBtn}>
@@ -45,35 +78,73 @@ export default function DiscoverScreen({ navigation }) {
         ))}
       </View>
 
+      {/* First-launch banner */}
+      {catchCount === 0 && (
+        <View style={s.welcomeCard}>
+          <Text style={s.welcomeEmoji}>🦁</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.welcomeTitle}>Welcome to SnapWild!</Text>
+            <Text style={s.welcomeSub}>Head outside, tap Snap, and point at any animal. Vanya will identify it instantly.</Text>
+          </View>
+        </View>
+      )}
+
       {/* Mission */}
-      <SectionHeader title="Today's Mission" link="See all" />
+      <SectionHeader title="Today's Mission" />
       <View style={s.missionCard}>
         <View style={{ flex: 1 }}>
           <View style={s.missionBadge}>
-            <Text style={s.missionBadgeText}>NEW</Text>
+            <Text style={s.missionBadgeText}>{catchCount >= mission.goal ? 'DONE' : 'ACTIVE'}</Text>
           </View>
-          <Text style={s.missionTitle}>First Catch!</Text>
-          <Text style={s.missionSub}>Snap your first wild animal to begin</Text>
+          <Text style={s.missionTitle}>{mission.title}</Text>
+          <Text style={s.missionSub}>{mission.sub}</Text>
           <View style={s.progressTrack}>
-            <View style={[s.progressFill, { width: missionDone ? '100%' : '0%' }]} />
+            <View style={[s.progressFill, { width: `${progress * 100}%` }]} />
           </View>
-          <Text style={s.progressText}>{missionDone ? '1 / 1 complete ✓' : '0 / 1 complete'}</Text>
+          <Text style={s.progressText}>
+            {Math.min(catchCount, mission.goal)} / {mission.goal} {catchCount >= mission.goal ? '✓' : ''}
+          </Text>
         </View>
         <View style={s.xpBadge}>
           <Ionicons name="flash" size={14} color={C.bg} />
-          <Text style={s.xpNum}>+15</Text>
+          <Text style={s.xpNum}>+{mission.xp}</Text>
           <Text style={s.xpLabel}>XP</Text>
         </View>
       </View>
+
+      {/* Recent catches */}
+      {recent.length > 0 && (
+        <>
+          <SectionHeader title="Recent Catches" link="See all" onLink={() => navigation.getParent()?.navigate('Collection')} />
+          <View style={s.recentCard}>
+            {recent.map((c, i) => {
+              const color = RARITY_COLOR[c.rarity] ?? C.gray;
+              return (
+                <View key={c.id ?? i}>
+                  <View style={s.recentRow}>
+                    <View style={[s.recentDot, { backgroundColor: color }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.recentName}>{c.name}</Text>
+                      <Text style={s.recentSub}>{c.rarity} · {new Date(c.caughtAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+                    </View>
+                    <Text style={[s.recentXP, { color }]}>+{c.xp} XP</Text>
+                  </View>
+                  {i < recent.length - 1 && <View style={s.divider} />}
+                </View>
+              );
+            })}
+          </View>
+        </>
+      )}
 
       {/* Rarity guide */}
       <SectionHeader title="Rarity Tiers" />
       <View style={s.rarityCard}>
         {[
-          { tier: 'Common',    xp: '15 XP',  color: C.gray   },
-          { tier: 'Uncommon',  xp: '45 XP',  color: C.green  },
-          { tier: 'Rare',      xp: '100 XP', color: C.blue   },
-          { tier: 'Legendary', xp: '150+ XP',color: C.orange },
+          { tier: 'Common',    xp: '15 XP',   color: C.gray   },
+          { tier: 'Uncommon',  xp: '45 XP',   color: C.green  },
+          { tier: 'Rare',      xp: '100 XP',  color: C.blue   },
+          { tier: 'Legendary', xp: '150+ XP', color: C.orange },
         ].map((r, i, arr) => (
           <View key={r.tier}>
             <View style={s.rarityRow}>
@@ -129,26 +200,38 @@ const s = StyleSheet.create({
   greetName: { fontSize: 20, fontWeight: 'bold', color: C.text },
   notifBtn:  { width: 40, height: 40, borderRadius: 20, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
 
-  statsRow: { flexDirection: 'row', marginHorizontal: 16, gap: 10, marginBottom: 24 },
-  statCard: { flex: 1, backgroundColor: C.card, borderRadius: 14, alignItems: 'center', paddingVertical: 14, gap: 4, borderWidth: 1, borderColor: C.border },
+  statsRow:  { flexDirection: 'row', marginHorizontal: 16, gap: 10, marginBottom: 24 },
+  statCard:  { flex: 1, backgroundColor: C.card, borderRadius: 14, alignItems: 'center', paddingVertical: 14, gap: 4, borderWidth: 1, borderColor: C.border },
   statValue: { fontSize: 20, fontWeight: 'bold', color: C.text },
   statLabel: { fontSize: 11, color: C.muted },
+
+  welcomeCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.primary + '30', marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.primary },
+  welcomeEmoji: { fontSize: 32 },
+  welcomeTitle: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 4 },
+  welcomeSub:   { fontSize: 12, color: C.muted, lineHeight: 18 },
 
   secHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, marginBottom: 10 },
   secTitle:  { fontSize: 16, fontWeight: '700', color: C.text },
   secLink:   { fontSize: 13, color: C.accent },
 
-  missionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
-  missionBadge: { backgroundColor: C.primary, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', marginBottom: 8 },
+  missionCard:      { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  missionBadge:     { backgroundColor: C.primary, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', marginBottom: 8 },
   missionBadgeText: { fontSize: 10, fontWeight: 'bold', color: C.accent, letterSpacing: 1 },
-  missionTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 4 },
-  missionSub:   { fontSize: 12, color: C.muted, marginBottom: 12 },
-  progressTrack: { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
-  progressFill:  { height: 6, backgroundColor: C.accent, borderRadius: 3 },
-  progressText:  { fontSize: 11, color: C.muted, marginTop: 6 },
-  xpBadge: { backgroundColor: C.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, alignItems: 'center', marginLeft: 14, gap: 2 },
-  xpNum:   { fontSize: 16, fontWeight: 'bold', color: C.accent },
-  xpLabel: { fontSize: 10, color: C.muted },
+  missionTitle:     { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 4 },
+  missionSub:       { fontSize: 12, color: C.muted, marginBottom: 12 },
+  progressTrack:    { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
+  progressFill:     { height: 6, backgroundColor: C.accent, borderRadius: 3 },
+  progressText:     { fontSize: 11, color: C.muted, marginTop: 6 },
+  xpBadge:  { backgroundColor: C.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, alignItems: 'center', marginLeft: 14, gap: 2 },
+  xpNum:    { fontSize: 16, fontWeight: 'bold', color: C.accent },
+  xpLabel:  { fontSize: 10, color: C.muted },
+
+  recentCard: { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  recentRow:  { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 },
+  recentDot:  { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+  recentName: { fontSize: 14, fontWeight: '600', color: C.text },
+  recentSub:  { fontSize: 11, color: C.muted, marginTop: 2 },
+  recentXP:   { fontSize: 13, fontWeight: 'bold' },
 
   rarityCard: { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
   rarityRow:  { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 },
@@ -157,13 +240,13 @@ const s = StyleSheet.create({
   rarityXP:   { fontSize: 13, fontWeight: '700' },
   divider:    { height: 1, backgroundColor: C.border },
 
+  leaderCard:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  leaderLeft:    { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  leaderIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.accent + '20', alignItems: 'center', justifyContent: 'center' },
+  leaderTitle:   { fontSize: 14, fontWeight: '700', color: C.text },
+  leaderSub:     { fontSize: 12, color: C.muted, marginTop: 2 },
+
   emptyCard:  { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 32, alignItems: 'center', gap: 8, marginBottom: 24, borderWidth: 1, borderColor: C.border },
   emptyTitle: { fontSize: 15, fontWeight: '600', color: C.text },
   emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center' },
-
-  leaderCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
-  leaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  leaderIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.accent + '20', alignItems: 'center', justifyContent: 'center' },
-  leaderTitle: { fontSize: 14, fontWeight: '700', color: C.text },
-  leaderSub:   { fontSize: 12, color: C.muted, marginTop: 2 },
 });
