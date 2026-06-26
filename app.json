@@ -14,9 +14,6 @@
     },
     "ios": {
       "supportsTablet": true,
-      "config": {
-        "googleMapsApiKey": "AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao"
-      },
       "infoPlist": {
         "NSCameraUsageDescription": "SnapWild needs camera access so Vanya can identify wildlife for you.",
         "NSPhotoLibraryUsageDescription": "SnapWild needs photo library access to identify animals from your gallery.",
@@ -29,11 +26,6 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao"
-        }
-      },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
