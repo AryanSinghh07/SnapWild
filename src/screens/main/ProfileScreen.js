@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import useCatchStore from '../../store/useCatchStore';
+import useFriendStore from '../../store/useFriendStore';
 import { C } from '../../theme/colors';
 
 const XP_TRACKS = [
@@ -24,12 +25,17 @@ const BADGES = [
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout, updateUser } = useAuth();
-  const catches      = useCatchStore(s => s.catches);
-  const getXPByTrack = useCatchStore(s => s.getXPByTrack);
-  const getTotalXP   = useCatchStore(s => s.getTotalXP);
-  const xpByTrack    = getXPByTrack();
-  const totalXP      = getTotalXP();
-  const catchCount   = catches.length;
+  const catches        = useCatchStore(s => s.catches);
+  const getXPByTrack   = useCatchStore(s => s.getXPByTrack);
+  const getTotalXP     = useCatchStore(s => s.getTotalXP);
+  const xpByTrack      = getXPByTrack();
+  const totalXP        = getTotalXP();
+  const catchCount     = catches.length;
+
+  const friendCount    = useFriendStore(s => s.friends.length);
+  const requestCount   = useFriendStore(s => s.requests.length);
+  const getTotalUnread = useFriendStore(s => s.getTotalUnread);
+  const totalUnread    = getTotalUnread();
 
   // Edit modal state
   const [editVisible, setEditVisible] = useState(false);
@@ -164,8 +170,46 @@ export default function ProfileScreen({ navigation }) {
           ))}
         </View>
 
+        {/* Social */}
+        <SectionHeader title="Social" />
+        <TouchableOpacity style={s.socialCard} onPress={() => navigation.navigate('Friends')} activeOpacity={0.85}>
+          <View style={s.socialLeft}>
+            <View style={[s.socialIcon, { backgroundColor: C.accent + '20' }]}>
+              <Ionicons name="people" size={20} color={C.accent} />
+            </View>
+            <View>
+              <Text style={s.socialTitle}>Friends</Text>
+              <Text style={s.socialSub}>{friendCount} friend{friendCount !== 1 ? 's' : ''}{requestCount > 0 ? ` · ${requestCount} request${requestCount > 1 ? 's' : ''}` : ''}</Text>
+            </View>
+          </View>
+          <View style={s.socialRight}>
+            {requestCount > 0 && (
+              <View style={s.badge}><Text style={s.badgeText}>{requestCount}</Text></View>
+            )}
+            <Ionicons name="chevron-forward" size={18} color={C.muted} />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[s.socialCard, { marginTop: 8 }]} onPress={() => navigation.navigate('Conversations')} activeOpacity={0.85}>
+          <View style={s.socialLeft}>
+            <View style={[s.socialIcon, { backgroundColor: C.blue + '20' }]}>
+              <Ionicons name="chatbubbles" size={20} color={C.blue} />
+            </View>
+            <View>
+              <Text style={s.socialTitle}>Messages</Text>
+              <Text style={s.socialSub}>{totalUnread > 0 ? `${totalUnread} unread message${totalUnread > 1 ? 's' : ''}` : 'Chat with friends'}</Text>
+            </View>
+          </View>
+          <View style={s.socialRight}>
+            {totalUnread > 0 && (
+              <View style={[s.badge, { backgroundColor: C.blue }]}><Text style={s.badgeText}>{totalUnread}</Text></View>
+            )}
+            <Ionicons name="chevron-forward" size={18} color={C.muted} />
+          </View>
+        </TouchableOpacity>
+
         {/* Health Tracking */}
-        <TouchableOpacity style={s.healthCard} onPress={() => navigation.navigate('Health')} activeOpacity={0.85}>
+        <TouchableOpacity style={[s.healthCard, { marginTop: 8 }]} onPress={() => navigation.navigate('Health')} activeOpacity={0.85}>
           <View style={s.healthLeft}>
             <View style={s.healthIcon}>
               <Ionicons name="leaf" size={20} color={C.green} />
@@ -308,6 +352,15 @@ const s = StyleSheet.create({
   badgeNameLocked: { color: C.muted },
   badgeDesc:       { fontSize: 11, color: C.muted, textAlign: 'center' },
   badgeLock:       { position: 'absolute', top: 8, right: 8 },
+
+  socialCard:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border },
+  socialLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  socialIcon:  { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  socialTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  socialSub:   { fontSize: 12, color: C.muted, marginTop: 2 },
+  socialRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badge:       { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  badgeText:   { fontSize: 11, fontWeight: 'bold', color: C.bg },
 
   healthCard:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, marginBottom: 12, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border },
   healthLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
