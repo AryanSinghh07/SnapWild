@@ -1,6 +1,5 @@
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL   = 'google/gemini-2.0-flash-001';
+const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const PROMPT = `You are Vanya, an expert wildlife AI for the SnapWild app (India-focused).
 
@@ -56,38 +55,27 @@ export async function identifyAnimal(base64Image) {
   }
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch(`${API_URL}?key=${API_KEY}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
-        'HTTP-Referer': 'https://snapwild.in',
-        'X-Title': 'SnapWild',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: MODEL,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: PROMPT },
-            {
-              type: 'image_url',
-              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
-            },
+        contents: [{
+          parts: [
+            { text: PROMPT },
+            { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
           ],
         }],
-        temperature: 0.1,
-        max_tokens: 1024,
+        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
       }),
     });
 
     if (!res.ok) {
-      console.warn(`OpenRouter ${res.status} — falling back to demo`);
+      console.warn(`Gemini ${res.status} — falling back to demo`);
       return demoResult();
     }
 
     const json    = await res.json();
-    const raw     = json.choices?.[0]?.message?.content ?? '';
+    const raw     = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const data    = JSON.parse(cleaned);
 
@@ -97,7 +85,7 @@ export async function identifyAnimal(base64Image) {
     return data;
 
   } catch (err) {
-    console.warn('OpenRouter error — falling back to demo:', err.message);
+    console.warn('Gemini error — falling back to demo:', err.message);
     return demoResult();
   }
 }
