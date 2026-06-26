@@ -38,6 +38,24 @@ const useCatchStore = create(
           return true;
         });
       },
+
+      getStreak: () => {
+        const catches = get().catches;
+        if (catches.length === 0) return 0;
+        const today     = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86_400_000).toDateString();
+        const days = [...new Set(catches.map(c => new Date(c.caughtAt).toDateString()))]
+          .sort((a, b) => new Date(a) - new Date(b));
+        const last = days[days.length - 1];
+        if (last !== today && last !== yesterday) return 0;
+        let streak = 1;
+        for (let i = days.length - 2; i >= 0; i--) {
+          const diff = (new Date(days[i + 1]) - new Date(days[i])) / 86_400_000;
+          if (diff === 1) streak++;
+          else break;
+        }
+        return streak;
+      },
     }),
     {
       name:    'snapwild-catches-v1',

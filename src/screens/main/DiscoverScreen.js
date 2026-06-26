@@ -187,6 +187,21 @@ export default function DiscoverScreen({ navigation }) {
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
 
+      {/* Missions */}
+      <SectionHeader title="Missions" link="See all" onLink={() => navigation.navigate('Missions')} />
+      <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('Missions')}>
+        <View style={s.leaderLeft}>
+          <View style={[s.leaderIconBox, { backgroundColor: C.orange + '20' }]}>
+            <Ionicons name="trophy" size={22} color={C.orange} />
+          </View>
+          <View>
+            <Text style={s.leaderTitle}>Community Missions</Text>
+            <Text style={s.leaderSub}>Weekly & monthly group challenges</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+      </TouchableOpacity>
+
       {/* Community */}
       <SectionHeader title="Community" link="See all" onLink={() => navigation.navigate('Community')} />
       <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('Community')}>
