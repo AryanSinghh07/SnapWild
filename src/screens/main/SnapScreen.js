@@ -2,23 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { C } from '../../theme/colors';
-import * as ImagePicker from 'expo-image-picker';
 
 export default function SnapScreen({ navigation }) {
-  const handleGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      base64: true,
-      quality: 0.7,
-      allowsEditing: true,
-      aspect: [4, 3],
-    });
-    if (!result.canceled && result.assets?.[0]) {
-      const asset = result.assets[0];
-      navigation.navigate('CatchResult', { base64: asset.base64, uri: asset.uri });
-    }
-  };
-
   return (
     <View style={s.screen}>
       <View style={s.hero}>
@@ -34,33 +19,10 @@ export default function SnapScreen({ navigation }) {
         </Text>
       </View>
 
-      <View style={s.actions}>
-        <TouchableOpacity style={s.btnPrimary} activeOpacity={0.85} onPress={() => navigation.navigate('Camera')}>
-          <Ionicons name="camera" size={22} color={C.bg} />
-          <Text style={s.btnPrimaryText}>Open Camera</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.btnOutline} activeOpacity={0.8} onPress={handleGallery}>
-          <Ionicons name="images-outline" size={22} color={C.accent} />
-          <Text style={s.btnOutlineText}>Upload from Gallery</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={s.raritySection}>
-        <Text style={s.rarityTitle}>Catch rewards by rarity</Text>
-        <View style={s.rarityRow}>
-          {[
-            { label: 'Common',    xp: '15',   color: C.gray   },
-            { label: 'Uncommon',  xp: '45',   color: C.green  },
-            { label: 'Rare',      xp: '100',  color: C.blue   },
-            { label: 'Legendary', xp: '150+', color: C.orange },
-          ].map(r => (
-            <View key={r.label} style={[s.rarityChip, { borderColor: r.color + '80' }]}>
-              <Text style={[s.rarityLabel, { color: r.color }]}>{r.label}</Text>
-              <Text style={[s.rarityXP,    { color: r.color }]}>{r.xp} XP</Text>
-            </View>
-          ))}
-        </View>
-      </View>
+      <TouchableOpacity style={s.btnPrimary} activeOpacity={0.85} onPress={() => navigation.navigate('Camera')}>
+        <Ionicons name="camera" size={22} color={C.bg} />
+        <Text style={s.btnPrimaryText}>Catch Now</Text>
+      </TouchableOpacity>
 
       <View style={s.vanyaHint}>
         <Text style={s.vanyaEmoji}>🌳</Text>
@@ -89,26 +51,11 @@ const s = StyleSheet.create({
   title: { fontSize: 26, fontWeight: 'bold', color: C.text, marginBottom: 8 },
   sub:   { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 22 },
 
-  actions: { gap: 12 },
   btnPrimary: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: C.accent, borderRadius: 16, paddingVertical: 18, gap: 10,
   },
   btnPrimaryText: { fontSize: 17, fontWeight: 'bold', color: C.bg },
-  btnOutline: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: C.accent, borderRadius: 16, paddingVertical: 16, gap: 10,
-  },
-  btnOutlineText: { fontSize: 17, fontWeight: '600', color: C.accent },
-
-  raritySection: { gap: 10 },
-  rarityTitle:   { fontSize: 13, color: C.muted, fontWeight: '600', textAlign: 'center' },
-  rarityRow:     { flexDirection: 'row', gap: 8, justifyContent: 'center' },
-  rarityChip: {
-    borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center',
-  },
-  rarityLabel: { fontSize: 10, fontWeight: '600', marginBottom: 2 },
-  rarityXP:    { fontSize: 12, fontWeight: 'bold' },
 
   vanyaHint: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
