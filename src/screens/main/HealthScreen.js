@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Dimensions, Platform,
+  Dimensions,
 } from 'react-native';
 import { Pedometer } from 'expo-sensors';
+import * as Haptics from 'expo-haptics';
+import * as Speech  from 'expo-speech';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import useHealthStore from '../../store/useHealthStore';
@@ -304,30 +306,58 @@ function ChartStat({ label, value }) {
   );
 }
 
-function BreathingCard() {
-  const [phase,   setPhase]   = useState('idle'); // idle | inhale | hold | exhale
-  const [counter, setCounter] = useState(0);
-  const timerRef = useRef(null);
+const BREATH_PHASES = [
+  { key: 'inhale', label: 'Breathe In',  speech: 'Breathe in',  duration: 4, color: C.blue,   haptic: 'medium' },
+  { key: 'hold',   label: 'Hold',        speech: 'Hold',        duration: 4, color: C.accent, haptic: 'light'  },
+  { key: 'exhale', label: 'Breathe Out', speech: 'Breathe out', duration: 6, color: C.green,  haptic: 'light'  },
+];
 
-  const PHASES = [
-    { key: 'inhale', label: 'Breathe In',  duration: 4, color: C.blue   },
-    { key: 'hold',   label: 'Hold',        duration: 4, color: C.accent },
-    { key: 'exhale', label: 'Breathe Out', duration: 6, color: C.green  },
-  ];
+function BreathingCard() {
+  const [phase,   setPhase]   = useState('idle');
+  const [counter, setCounter] = useState(0);
+  const [sound,   setSound]   = useState(true);
+  const timerRef  = useRef(null);
+  const tickRef   = useRef(null);
+  const phaseIdx  = useRef(0);
+  const secRef    = useRef(0);
+
+  const triggerHaptic = (type) => {
+    if (type === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    else if (type === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    else Haptics.selectionAsync();
+  };
+
+  const announcePhase = (ph, withSound) => {
+    triggerHaptic(ph.haptic);
+    if (withSound) {
+      Speech.stop();
+      Speech.speak(ph.speech, { rate: 0.75, pitch: 0.85, language: 'en-IN' });
+    }
+  };
 
   const startBreathing = () => {
-    let pi = 0, secs = 0;
-    setPhase(PHASES[0].key);
-    setCounter(PHASES[0].duration);
+    phaseIdx.current = 0;
+    secRef.current   = 0;
+    const first = BREATH_PHASES[0];
+    setPhase(first.key);
+    setCounter(first.duration);
+    announcePhase(first, sound);
+
+    // Subtle tick haptic every second during inhale/exhale
+    tickRef.current = setInterval(() => Haptics.selectionAsync(), 1000);
+
     timerRef.current = setInterval(() => {
-      secs++;
-      const cur = PHASES[pi];
-      const remaining = cur.duration - secs;
+      secRef.current++;
+      const cur       = BREATH_PHASES[phaseIdx.current];
+      const remaining = cur.duration - secRef.current;
+
       if (remaining <= 0) {
-        pi = (pi + 1) % PHASES.length;
-        secs = 0;
-        setPhase(PHASES[pi].key);
-        setCounter(PHASES[pi].duration);
+        phaseIdx.current = (phaseIdx.current + 1) % BREATH_PHASES.length;
+        secRef.current   = 0;
+        const next = BREATH_PHASES[phaseIdx.current];
+        setPhase(next.key);
+        setCounter(next.duration);
+        announcePhase(next, sound);
       } else {
         setCounter(remaining);
       }
@@ -336,26 +366,52 @@ function BreathingCard() {
 
   const stopBreathing = () => {
     clearInterval(timerRef.current);
+    clearInterval(tickRef.current);
+    Speech.stop();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPhase('idle');
     setCounter(0);
   };
 
-  useEffect(() => () => clearInterval(timerRef.current), []);
+  useEffect(() => () => {
+    clearInterval(timerRef.current);
+    clearInterval(tickRef.current);
+    Speech.stop();
+  }, []);
 
-  const cur = PHASES.find(p => p.key === phase);
+  const cur = BREATH_PHASES.find(p => p.key === phase);
 
   return (
     <View style={s.breathCard}>
       <View style={s.breathLeft}>
-        <Text style={s.breathTitle}>Box Breathing</Text>
-        <Text style={s.breathSub}>4-4-6 pattern · reduces stress in 60 seconds</Text>
-        {phase !== 'idle' && (
-          <View style={s.breathPhase}>
+        <View style={s.breathTitleRow}>
+          <Text style={s.breathTitle}>Box Breathing</Text>
+          {/* Sound toggle */}
+          <TouchableOpacity
+            style={[s.soundBtn, sound && s.soundBtnOn]}
+            onPress={() => setSound(v => !v)}
+          >
+            <Ionicons name={sound ? 'volume-high' : 'volume-mute'} size={14} color={sound ? C.accent : C.muted} />
+          </TouchableOpacity>
+        </View>
+        <Text style={s.breathSub}>4-4-6 · voice guidance · haptic rhythm</Text>
+
+        {phase !== 'idle' ? (
+          <View style={s.breathPhaseBlock}>
+            {/* Phase dots */}
+            <View style={s.breathDots}>
+              {BREATH_PHASES.map(p => (
+                <View key={p.key} style={[s.breathDot, { backgroundColor: phase === p.key ? p.color : C.border }]} />
+              ))}
+            </View>
             <Text style={[s.breathPhaseLabel, { color: cur.color }]}>{cur.label}</Text>
             <Text style={[s.breathCount, { color: cur.color }]}>{counter}</Text>
           </View>
+        ) : (
+          <Text style={s.breathIdle}>Reduces stress in 60 seconds</Text>
         )}
       </View>
+
       <TouchableOpacity
         style={[s.breathBtn, phase !== 'idle' && { backgroundColor: C.red }]}
         onPress={phase === 'idle' ? startBreathing : stopBreathing}
@@ -441,14 +497,20 @@ const s = StyleSheet.create({
   chartStatLabel:{ fontSize: 10, color: C.muted, marginTop: 2 },
 
   // Breathing
-  breathCard:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
-  breathLeft:   { flex: 1 },
-  breathTitle:  { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 4 },
-  breathSub:    { fontSize: 12, color: C.muted },
-  breathPhase:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  breathCard:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  breathLeft:       { flex: 1 },
+  breathTitleRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  breathTitle:      { fontSize: 15, fontWeight: '700', color: C.text },
+  soundBtn:         { padding: 5, borderRadius: 8, backgroundColor: C.card2, borderWidth: 1, borderColor: C.border },
+  soundBtnOn:       { borderColor: C.accent + '60', backgroundColor: C.accent + '15' },
+  breathSub:        { fontSize: 12, color: C.muted, marginBottom: 4 },
+  breathIdle:       { fontSize: 12, color: C.muted, fontStyle: 'italic', marginTop: 6 },
+  breathPhaseBlock: { marginTop: 10, gap: 4 },
+  breathDots:       { flexDirection: 'row', gap: 6, marginBottom: 6 },
+  breathDot:        { width: 8, height: 8, borderRadius: 4 },
   breathPhaseLabel: { fontSize: 14, fontWeight: '700' },
-  breathCount:  { fontSize: 28, fontWeight: 'bold' },
-  breathBtn:    { width: 48, height: 48, borderRadius: 24, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
+  breathCount:      { fontSize: 32, fontWeight: 'bold', lineHeight: 36 },
+  breathBtn:        { width: 48, height: 48, borderRadius: 24, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
 
   // Tips
   tipsCard:  { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
