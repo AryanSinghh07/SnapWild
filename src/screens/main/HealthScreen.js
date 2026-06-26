@@ -316,10 +316,20 @@ function BreathingCard() {
   const [phase,   setPhase]   = useState('idle');
   const [counter, setCounter] = useState(0);
   const [sound,   setSound]   = useState(true);
+  const soundRef  = useRef(true);          // always current — readable inside intervals
   const timerRef  = useRef(null);
   const tickRef   = useRef(null);
   const phaseIdx  = useRef(0);
   const secRef    = useRef(0);
+
+  // Keep ref in sync with state so intervals always read the latest value
+  const toggleSound = () => {
+    setSound(prev => {
+      soundRef.current = !prev;
+      if (!prev === false) Speech.stop(); // muted — stop any speaking immediately
+      return !prev;
+    });
+  };
 
   const triggerHaptic = (type) => {
     if (type === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -327,9 +337,10 @@ function BreathingCard() {
     else Haptics.selectionAsync();
   };
 
-  const announcePhase = (ph, withSound) => {
+  // Reads soundRef.current — always sees the latest toggle state
+  const announcePhase = (ph) => {
     triggerHaptic(ph.haptic);
-    if (withSound) {
+    if (soundRef.current) {
       Speech.stop();
       Speech.speak(ph.speech, { rate: 0.75, pitch: 0.85, language: 'en-IN' });
     }
@@ -341,9 +352,8 @@ function BreathingCard() {
     const first = BREATH_PHASES[0];
     setPhase(first.key);
     setCounter(first.duration);
-    announcePhase(first, sound);
+    announcePhase(first);
 
-    // Subtle tick haptic every second during inhale/exhale
     tickRef.current = setInterval(() => Haptics.selectionAsync(), 1000);
 
     timerRef.current = setInterval(() => {
@@ -357,7 +367,7 @@ function BreathingCard() {
         const next = BREATH_PHASES[phaseIdx.current];
         setPhase(next.key);
         setCounter(next.duration);
-        announcePhase(next, sound);
+        announcePhase(next);   // uses soundRef.current — always live
       } else {
         setCounter(remaining);
       }
@@ -389,7 +399,7 @@ function BreathingCard() {
           {/* Sound toggle */}
           <TouchableOpacity
             style={[s.soundBtn, sound && s.soundBtnOn]}
-            onPress={() => setSound(v => !v)}
+            onPress={toggleSound}
           >
             <Ionicons name={sound ? 'volume-high' : 'volume-mute'} size={14} color={sound ? C.accent : C.muted} />
           </TouchableOpacity>
