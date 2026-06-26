@@ -1,5 +1,6 @@
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL   = 'google/gemini-2.0-flash-001';
 
 const PROMPT = `You are Vanya, an expert wildlife AI for the SnapWild app (India-focused).
 
@@ -30,10 +31,9 @@ Return JSON only. No markdown code blocks.`;
 
 const RARITY_XP = { Common: 15, Uncommon: 45, Rare: 100, Legendary: 150 };
 
-// Demo result when no API key is configured
-const demoResult = (name = 'Indian Peacock') => ({
+const demoResult = () => ({
   found: true,
-  name,
+  name: 'Indian Peacock',
   scientific: 'Pavo cristatus',
   habitat: 'Forests, grasslands and farmland across the Indian subcontinent',
   conservation: 'Least Concern',
@@ -51,40 +51,53 @@ const demoResult = (name = 'Indian Peacock') => ({
 
 export async function identifyAnimal(base64Image) {
   if (!API_KEY) {
-    await new Promise(r => setTimeout(r, 1200)); // simulate latency
+    await new Promise(r => setTimeout(r, 1200));
     return demoResult();
   }
 
   try {
-    const res = await fetch(`${API_URL}?key=${API_KEY}`, {
+    const res = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+        'HTTP-Referer': 'https://snapwild.in',
+        'X-Title': 'SnapWild',
+      },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: PROMPT },
-            { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
+        model: MODEL,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: PROMPT },
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+            },
           ],
         }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+        temperature: 0.1,
+        max_tokens: 1024,
       }),
     });
 
-    if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+    if (!res.ok) {
+      console.warn(`OpenRouter ${res.status} — falling back to demo`);
+      return demoResult();
+    }
 
-    const json = await res.json();
-    const raw  = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const json    = await res.json();
+    const raw     = json.choices?.[0]?.message?.content ?? '';
     const cleaned = raw.replace(/```json|```/g, '').trim();
-    const data = JSON.parse(cleaned);
+    const data    = JSON.parse(cleaned);
 
     if (!data.found) return { found: false };
 
-    // Normalise XP to match rarity
     data.xp = RARITY_XP[data.rarity] ?? 15;
     return data;
 
   } catch (err) {
-    console.error('Gemini error:', err);
-    return { found: false, error: err.message };
+    console.warn('OpenRouter error — falling back to demo:', err.message);
+    return demoResult();
   }
 }
