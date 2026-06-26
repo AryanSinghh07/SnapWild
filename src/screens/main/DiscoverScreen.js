@@ -187,6 +187,21 @@ export default function DiscoverScreen({ navigation }) {
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
 
+      {/* Community */}
+      <SectionHeader title="Community" link="See all" onLink={() => navigation.navigate('Community')} />
+      <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('Community')}>
+        <View style={s.leaderLeft}>
+          <View style={[s.leaderIconBox, { backgroundColor: C.blue + '20' }]}>
+            <Ionicons name="people" size={22} color={C.blue} />
+          </View>
+          <View>
+            <Text style={s.leaderTitle}>Wildlife Community</Text>
+            <Text style={s.leaderSub}>See catches from across India</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+      </TouchableOpacity>
+
       {/* Nearby */}
       <SectionHeader title="Nearby Sightings" />
       <View style={s.emptyCard}>
