@@ -30,13 +30,19 @@ export function AuthProvider({ children }) {
     setUser(userData);
   };
 
+  const updateUser = async (fields) => {
+    const updated = { ...user, ...fields };
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setUser(updated);
+  };
+
   const logout = async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
