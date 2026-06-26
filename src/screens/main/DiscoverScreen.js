@@ -2,15 +2,23 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import useCatchStore from '../../store/useCatchStore';
 import { C } from '../../theme/colors';
 
 export default function DiscoverScreen() {
   const { user } = useAuth();
+  const catches       = useCatchStore(s => s.catches);
+  const getTotalXP    = useCatchStore(s => s.getTotalXP);
+  const uniqueSpecies = useCatchStore(s => s.getUniqueSpecies);
+
+  const totalXP    = getTotalXP();
+  const catchCount = catches.length;
+  const missionDone = catchCount >= 1;
 
   const stats = [
-    { label: 'Catches', value: user?.catches ?? 0,  icon: 'paw'   },
-    { label: 'Total XP', value: '0',                icon: 'flash' },
-    { label: 'Streak',  value: `${user?.streak ?? 0}d`, icon: 'flame' },
+    { label: 'Catches',  value: catchCount,              icon: 'paw'   },
+    { label: 'Total XP', value: totalXP,                 icon: 'flash' },
+    { label: 'Streak',   value: `${user?.streak ?? 0}d`, icon: 'flame' },
   ];
 
   return (
@@ -47,9 +55,9 @@ export default function DiscoverScreen() {
           <Text style={s.missionTitle}>First Catch!</Text>
           <Text style={s.missionSub}>Snap your first wild animal to begin</Text>
           <View style={s.progressTrack}>
-            <View style={[s.progressFill, { width: '0%' }]} />
+            <View style={[s.progressFill, { width: missionDone ? '100%' : '0%' }]} />
           </View>
-          <Text style={s.progressText}>0 / 1 complete</Text>
+          <Text style={s.progressText}>{missionDone ? '1 / 1 complete ✓' : '0 / 1 complete'}</Text>
         </View>
         <View style={s.xpBadge}>
           <Ionicons name="flash" size={14} color={C.bg} />

@@ -2,8 +2,23 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { C } from '../../theme/colors';
+import * as ImagePicker from 'expo-image-picker';
 
-export default function SnapScreen() {
+export default function SnapScreen({ navigation }) {
+  const handleGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      base64: true,
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [4, 3],
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      const asset = result.assets[0];
+      navigation.navigate('CatchResult', { base64: asset.base64, uri: asset.uri });
+    }
+  };
+
   return (
     <View style={s.screen}>
       <View style={s.hero}>
@@ -20,11 +35,11 @@ export default function SnapScreen() {
       </View>
 
       <View style={s.actions}>
-        <TouchableOpacity style={s.btnPrimary} activeOpacity={0.85}>
+        <TouchableOpacity style={s.btnPrimary} activeOpacity={0.85} onPress={() => navigation.navigate('Camera')}>
           <Ionicons name="camera" size={22} color={C.bg} />
           <Text style={s.btnPrimaryText}>Open Camera</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.btnOutline} activeOpacity={0.8}>
+        <TouchableOpacity style={s.btnOutline} activeOpacity={0.8} onPress={handleGallery}>
           <Ionicons name="images-outline" size={22} color={C.accent} />
           <Text style={s.btnOutlineText}>Upload from Gallery</Text>
         </TouchableOpacity>

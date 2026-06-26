@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { C } from '../theme/colors';
 
 import DiscoverScreen   from '../screens/main/DiscoverScreen';
-import SnapScreen       from '../screens/main/SnapScreen';
+import SnapStack        from './SnapStack';
 import CollectionScreen from '../screens/main/CollectionScreen';
 import ProfileScreen    from '../screens/main/ProfileScreen';
 
@@ -65,7 +65,7 @@ export default function MainTabNavigator() {
       }}
     >
       <Tab.Screen name="Discover"   component={DiscoverScreen}   options={{ headerTitle: '🌿 SnapWild'      }} />
-      <Tab.Screen name="Snap"       component={SnapScreen}       options={{ headerTitle: '📸 Snap & Catch'  }} />
+      <Tab.Screen name="Snap"       component={SnapStack}        options={{ headerShown: false }} />
       <Tab.Screen name="Collection" component={CollectionScreen} options={{ headerTitle: '🦁 My Collection' }} />
       <Tab.Screen name="Profile"    component={ProfileScreen}    options={{ headerTitle: '⚡ Profile'        }} />
     </Tab.Navigator>

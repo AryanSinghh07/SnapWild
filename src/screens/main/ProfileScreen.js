@@ -2,13 +2,14 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import useCatchStore from '../../store/useCatchStore';
 import { C } from '../../theme/colors';
 
 const XP_TRACKS = [
-  { name: 'Hunter XP',   icon: 'trail-sign',       color: C.accent, desc: 'Earn by catching animals'     },
-  { name: 'Guardian XP', icon: 'shield-checkmark',  color: C.green,  desc: 'Earn by rescuing animals'     },
-  { name: 'Health XP',   icon: 'heart',             color: C.red,    desc: 'Earn by walking outdoors'     },
-  { name: 'Social XP',   icon: 'people',            color: C.blue,   desc: 'Earn by engaging community'   },
+  { name: 'Hunter XP',   key: 'hunter',   icon: 'trail-sign',       color: C.accent, desc: 'Earn by catching animals'   },
+  { name: 'Guardian XP', key: 'guardian', icon: 'shield-checkmark',  color: C.green,  desc: 'Earn by rescuing animals'   },
+  { name: 'Health XP',   key: 'health',   icon: 'heart',             color: C.red,    desc: 'Earn by walking outdoors'   },
+  { name: 'Social XP',   key: 'social',   icon: 'people',            color: C.blue,   desc: 'Earn by engaging community' },
 ];
 
 const BADGES = [
@@ -20,6 +21,12 @@ const BADGES = [
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const catches        = useCatchStore(s => s.catches);
+  const getXPByTrack   = useCatchStore(s => s.getXPByTrack);
+  const getTotalXP     = useCatchStore(s => s.getTotalXP);
+  const xpByTrack      = getXPByTrack();
+  const totalXP        = getTotalXP();
+  const catchCount     = catches.length;
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -46,9 +53,9 @@ export default function ProfileScreen() {
 
         <View style={s.statsRow}>
           {[
-            { val: user?.catches ?? 0,  label: 'Catches'  },
-            { val: user?.rescues ?? 0,  label: 'Rescues'  },
-            { val: `${user?.streak ?? 0}d`, label: 'Streak' },
+            { val: catchCount,              label: 'Catches'  },
+            { val: user?.rescues ?? 0,      label: 'Rescues'  },
+            { val: `${user?.streak ?? 0}d`, label: 'Streak'   },
           ].map((st, i, arr) => (
             <React.Fragment key={st.label}>
               <View style={s.stat}>
@@ -63,25 +70,30 @@ export default function ProfileScreen() {
 
       {/* XP Tracks */}
       <SectionHeader title="XP Tracks" />
-      {XP_TRACKS.map(t => (
-        <View key={t.name} style={s.xpCard}>
-          <View style={s.xpLeft}>
-            <View style={[s.xpIcon, { backgroundColor: t.color + '22' }]}>
-              <Ionicons name={t.icon} size={18} color={t.color} />
+      {XP_TRACKS.map(t => {
+        const xp  = xpByTrack[t.key] ?? 0;
+        const max = 500;
+        const pct = Math.min((xp / max) * 100, 100);
+        return (
+          <View key={t.name} style={s.xpCard}>
+            <View style={s.xpLeft}>
+              <View style={[s.xpIcon, { backgroundColor: t.color + '22' }]}>
+                <Ionicons name={t.icon} size={18} color={t.color} />
+              </View>
+              <View>
+                <Text style={s.xpName}>{t.name}</Text>
+                <Text style={s.xpDesc}>{t.desc}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={s.xpName}>{t.name}</Text>
-              <Text style={s.xpDesc}>{t.desc}</Text>
+            <View style={s.xpRight}>
+              <View style={[s.xpTrack, { backgroundColor: t.color + '20' }]}>
+                <View style={[s.xpFill, { width: `${pct}%`, backgroundColor: t.color }]} />
+              </View>
+              <Text style={[s.xpVal, { color: t.color }]}>{xp} XP</Text>
             </View>
           </View>
-          <View style={s.xpRight}>
-            <View style={[s.xpTrack, { backgroundColor: t.color + '20' }]}>
-              <View style={[s.xpFill, { width: '0%', backgroundColor: t.color }]} />
-            </View>
-            <Text style={[s.xpVal, { color: t.color }]}>0 XP</Text>
-          </View>
-        </View>
-      ))}
+        );
+      })}
 
       {/* Badges */}
       <SectionHeader title="Badges" />
