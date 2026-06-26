@@ -7,11 +7,19 @@ import { C } from '../../theme/colors';
 
 const RARITY_COLOR = { Common: C.gray, Uncommon: C.green, Rare: C.blue, Legendary: C.orange };
 
-function greeting() {
-  const h = new Date().getHours();
+function greeting(h) {
   if (h < 12) return 'Good morning';
   if (h < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+function useClock() {
+  const [now, setNow] = React.useState(new Date());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
 }
 
 const MISSIONS = [
@@ -30,6 +38,9 @@ export default function DiscoverScreen({ navigation }) {
   const { user }       = useAuth();
   const catches        = useCatchStore(s => s.catches);
   const getTotalXP     = useCatchStore(s => s.getTotalXP);
+  const now            = useClock();
+  const timeStr        = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dayStr         = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const totalXP    = getTotalXP();
   const catchCount = catches.length;
@@ -59,8 +70,12 @@ export default function DiscoverScreen({ navigation }) {
       {/* Greeting */}
       <View style={s.greeting}>
         <View>
-          <Text style={s.greetSub}>{greeting()},</Text>
+          <Text style={s.greetSub}>{greeting(now.getHours())},</Text>
           <Text style={s.greetName}>{user?.username ?? 'Explorer'} 🌿</Text>
+          <View style={s.clockRow}>
+            <Ionicons name="time-outline" size={12} color={C.muted} />
+            <Text style={s.clockText}>{dayStr} · {timeStr}</Text>
+          </View>
         </View>
         <View style={s.notifBtn}>
           <Ionicons name="notifications-outline" size={22} color={C.muted} />
@@ -197,7 +212,9 @@ const s = StyleSheet.create({
 
   greeting:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: 16, marginTop: 20 },
   greetSub:  { fontSize: 13, color: C.muted },
-  greetName: { fontSize: 20, fontWeight: 'bold', color: C.text },
+  greetName: { fontSize: 20, fontWeight: 'bold', color: C.text, marginBottom: 4 },
+  clockRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  clockText: { fontSize: 11, color: C.muted },
   notifBtn:  { width: 40, height: 40, borderRadius: 20, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
 
   statsRow:  { flexDirection: 'row', marginHorizontal: 16, gap: 10, marginBottom: 24 },
