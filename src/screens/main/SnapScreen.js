@@ -24,12 +24,6 @@ export default function SnapScreen({ navigation }) {
         <Text style={s.btnPrimaryText}>Catch Now</Text>
       </TouchableOpacity>
 
-      <View style={s.vanyaHint}>
-        <Text style={s.vanyaEmoji}>🌳</Text>
-        <Text style={s.vanyaText}>
-          "I'll identify the species, share fun facts, and add it to your collection automatically!"
-        </Text>
-      </View>
     </View>
   );
 }
@@ -57,10 +51,4 @@ const s = StyleSheet.create({
   },
   btnPrimaryText: { fontSize: 17, fontWeight: 'bold', color: C.bg },
 
-  vanyaHint: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: C.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border,
-  },
-  vanyaEmoji: { fontSize: 22 },
-  vanyaText:  { flex: 1, fontSize: 12, color: C.muted, lineHeight: 18, fontStyle: 'italic' },
 });
