@@ -16,12 +16,32 @@ const XP_TRACKS = [
   { name: 'Social XP',   key: 'social',   icon: 'people',           color: C.blue,   desc: 'Earn by engaging community' },
 ];
 
-const BADGES = [
-  { name: 'Birder',      icon: '🦜', desc: 'Catch 3 birds',           locked: true },
-  { name: 'Night Shift', icon: '🦉', desc: 'Catch nocturnal animal',  locked: true },
-  { name: 'Guardian',    icon: '🛡️', desc: 'File 5 rescues',         locked: true },
-  { name: 'Explorer',    icon: '🗺️', desc: 'Visit 10 cities',        locked: true },
+const BIRD_WORDS = [
+  'peacock','hornbill','eagle','owl','parrot','flamingo','roller','robin',
+  'sparrow','crow','pigeon','kite','heron','stork','crane','duck','kingfisher',
+  'woodpecker','mynah','myna','bulbul','sunbird','swallow','swift','warbler',
+  'drongo','babbler','thrush','shrike','bird',
 ];
+
+function computeBadges(catches) {
+  const birdCount   = catches.filter(c => BIRD_WORDS.some(b => c.name?.toLowerCase().includes(b))).length;
+  const uniqueCount = new Set(catches.map(c => c.name)).size;
+  const hasRare     = catches.some(c => c.rarity === 'Rare' || c.rarity === 'Legendary');
+  const hasLegend   = catches.some(c => c.rarity === 'Legendary');
+  const hasNight    = catches.some(c => { const h = new Date(c.caughtAt).getHours(); return h >= 20 || h < 6; });
+  const hasGPS      = catches.filter(c => c.lat != null).length >= 3;
+
+  return [
+    { name: 'First Catch',   icon: '🎯', desc: 'Make your first catch',     locked: catches.length < 1 },
+    { name: 'Birder',        icon: '🦜', desc: 'Catch 3 bird species',       locked: birdCount < 3     },
+    { name: 'Rare Hunter',   icon: '💎', desc: 'Catch a Rare or Legendary',  locked: !hasRare          },
+    { name: 'Collector',     icon: '📚', desc: 'Catch 5 unique species',     locked: uniqueCount < 5   },
+    { name: 'Night Shift',   icon: '🦉', desc: 'Catch after 8pm or before 6am', locked: !hasNight     },
+    { name: 'On Location',   icon: '📍', desc: 'Catch 3 animals with GPS',   locked: !hasGPS           },
+    { name: 'Legend',        icon: '⭐', desc: 'Catch a Legendary animal',    locked: !hasLegend        },
+    { name: 'Guardian',      icon: '🛡️', desc: 'File 5 rescue reports',     locked: true              },
+  ];
+}
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout, updateUser } = useAuth();
@@ -36,6 +56,8 @@ export default function ProfileScreen({ navigation }) {
   const requestCount   = useFriendStore(s => s.requests.length);
   const getTotalUnread = useFriendStore(s => s.getTotalUnread);
   const totalUnread    = getTotalUnread();
+
+  const badges = computeBadges(catches);
 
   // Edit modal state
   const [editVisible, setEditVisible] = useState(false);
@@ -156,7 +178,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Badges */}
         <SectionHeader title="Badges" />
         <View style={s.badgeGrid}>
-          {BADGES.map(b => (
+          {badges.map(b => (
             <View key={b.name} style={[s.badgeCard, b.locked && s.badgeCardLocked]}>
               <Text style={[s.badgeEmoji, b.locked && { opacity: 0.3 }]}>{b.icon}</Text>
               <Text style={[s.badgeName, b.locked && s.badgeNameLocked]}>{b.name}</Text>
