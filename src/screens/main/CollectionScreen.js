@@ -18,7 +18,7 @@ const LOCKED_ANIMALS = ['🦁', '🐯', '🐘', '🦏', '🐆', '🦌', '🦅', 
 
 const FILTERS = ['All', 'Common', 'Uncommon', 'Rare', 'Legendary'];
 
-export default function CollectionScreen() {
+export default function CollectionScreen({ navigation }) {
   const [filter, setFilter] = useState('All');
   const getUniqueSpecies = useCatchStore(s => s.getUniqueSpecies);
   const catches = useCatchStore(s => s.catches);
@@ -34,9 +34,10 @@ export default function CollectionScreen() {
           <Text style={s.title}>My Pokédex</Text>
           <Text style={s.sub}>{unique.length} species caught</Text>
         </View>
-        <View style={s.countBadge}>
-          <Text style={s.countText}>{unique.length} / ???</Text>
-        </View>
+        <TouchableOpacity style={s.mapBtn} onPress={() => navigation.navigate('CatchMap')}>
+          <Ionicons name="map-outline" size={16} color={C.accent} />
+          <Text style={s.mapBtnText}>Map</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Empty state */}
@@ -110,8 +111,8 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: 16, marginTop: 20 },
   title:  { fontSize: 24, fontWeight: 'bold', color: C.text },
   sub:    { fontSize: 13, color: C.muted, marginTop: 2 },
-  countBadge: { backgroundColor: C.primary, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8 },
-  countText:  { color: C.accent, fontWeight: 'bold', fontSize: 14 },
+  mapBtn:     { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
+  mapBtnText: { color: C.accent, fontWeight: 'bold', fontSize: 13 },
 
   emptyCard:  { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 28, alignItems: 'center', gap: 8, marginBottom: 20, borderWidth: 1, borderColor: C.border },
   emptyEmoji: { fontSize: 48, marginBottom: 4 },

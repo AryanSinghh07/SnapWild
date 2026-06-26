@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import useCatchStore from '../../store/useCatchStore';
 import { C } from '../../theme/colors';
 
-export default function DiscoverScreen() {
+export default function DiscoverScreen({ navigation }) {
   const { user } = useAuth();
   const catches       = useCatchStore(s => s.catches);
   const getTotalXP    = useCatchStore(s => s.getTotalXP);
@@ -86,6 +86,21 @@ export default function DiscoverScreen() {
         ))}
       </View>
 
+      {/* Leaderboard entry */}
+      <SectionHeader title="Leaderboard" link="See all" onLink={() => navigation.navigate('Leaderboard')} />
+      <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('Leaderboard')}>
+        <View style={s.leaderLeft}>
+          <View style={s.leaderIconBox}>
+            <Ionicons name="trophy" size={22} color={C.accent} />
+          </View>
+          <View>
+            <Text style={s.leaderTitle}>City Rankings</Text>
+            <Text style={s.leaderSub}>See how you rank this month</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+      </TouchableOpacity>
+
       {/* Nearby */}
       <SectionHeader title="Nearby Sightings" />
       <View style={s.emptyCard}>
@@ -97,11 +112,11 @@ export default function DiscoverScreen() {
   );
 }
 
-function SectionHeader({ title, link }) {
+function SectionHeader({ title, link, onLink }) {
   return (
     <View style={s.secHeader}>
       <Text style={s.secTitle}>{title}</Text>
-      {link && <Text style={s.secLink}>{link}</Text>}
+      {link && <TouchableOpacity onPress={onLink}><Text style={s.secLink}>{link}</Text></TouchableOpacity>}
     </View>
   );
 }
@@ -145,4 +160,10 @@ const s = StyleSheet.create({
   emptyCard:  { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 32, alignItems: 'center', gap: 8, marginBottom: 24, borderWidth: 1, borderColor: C.border },
   emptyTitle: { fontSize: 15, fontWeight: '600', color: C.text },
   emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center' },
+
+  leaderCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: C.border },
+  leaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  leaderIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.accent + '20', alignItems: 'center', justifyContent: 'center' },
+  leaderTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  leaderSub:   { fontSize: 12, color: C.muted, marginTop: 2 },
 });

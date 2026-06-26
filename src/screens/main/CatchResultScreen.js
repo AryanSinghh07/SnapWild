@@ -31,7 +31,7 @@ const CONSERVATION_COLOR = {
 };
 
 export default function CatchResultScreen({ navigation, route }) {
-  const { base64, uri } = route.params;
+  const { base64, uri, lat, lng } = route.params;
   const { addCatch, hasCaught } = useCatchStore();
   const insets = useSafeAreaInsets();
 
@@ -52,7 +52,7 @@ export default function CatchResultScreen({ navigation, route }) {
 
   const handleAddToCollection = () => {
     if (saved) return;
-    addCatch({ ...result, photoUri: uri });
+    addCatch({ ...result, photoUri: uri, ...(lat != null ? { lat, lng } : {}) });
     setSaved(true);
   };
 

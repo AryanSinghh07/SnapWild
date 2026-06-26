@@ -5,9 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { C } from '../theme/colors';
 
-import DiscoverScreen   from '../screens/main/DiscoverScreen';
+import DiscoverStack    from './DiscoverStack';
 import SnapStack        from './SnapStack';
-import CollectionScreen from '../screens/main/CollectionScreen';
+import CollectionStack  from './CollectionStack';
 import ProfileScreen    from '../screens/main/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -64,9 +64,9 @@ export default function MainTabNavigator() {
         headerTitleAlign: 'left',
       }}
     >
-      <Tab.Screen name="Discover"   component={DiscoverScreen}   options={{ headerTitle: '🌿 SnapWild'      }} />
+      <Tab.Screen name="Discover"   component={DiscoverStack}    options={{ headerShown: false }} />
       <Tab.Screen name="Snap"       component={SnapStack}        options={{ headerShown: false }} />
-      <Tab.Screen name="Collection" component={CollectionScreen} options={{ headerTitle: '🦁 My Collection' }} />
+      <Tab.Screen name="Collection" component={CollectionStack}  options={{ headerShown: false }} />
       <Tab.Screen name="Profile"    component={ProfileScreen}    options={{ headerTitle: '⚡ Profile'        }} />
     </Tab.Navigator>
   );

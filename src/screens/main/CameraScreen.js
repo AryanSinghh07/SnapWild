@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../../theme/colors';
@@ -48,12 +49,14 @@ export default function CameraScreen({ navigation }) {
     if (capturing || !cameraRef.current) return;
     setCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        base64: true,
-        quality: 0.7,
-        exif: false,
-      });
-      navigation.navigate('CatchResult', { base64: photo.base64, uri: photo.uri });
+      const [photo, loc] = await Promise.all([
+        cameraRef.current.takePictureAsync({ base64: true, quality: 0.7, exif: false }),
+        Location.requestForegroundPermissionsAsync()
+          .then(({ status }) => status === 'granted' ? Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }) : null)
+          .catch(() => null),
+      ]);
+      const coords = loc ? { lat: loc.coords.latitude, lng: loc.coords.longitude } : {};
+      navigation.navigate('CatchResult', { base64: photo.base64, uri: photo.uri, ...coords });
     } catch (e) {
       console.error('Capture error:', e);
     } finally {
