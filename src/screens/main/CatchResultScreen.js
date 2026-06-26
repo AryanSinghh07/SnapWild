@@ -8,8 +8,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { identifyAnimal } from '../../services/gemini';
 import useCatchStore from '../../store/useCatchStore';
+import useSocialStore from '../../store/useSocialStore';
+import { useAuth } from '../../context/AuthContext';
 import Toast from '../../components/Toast';
 import { C } from '../../theme/colors';
+
+const EMOJI_MAP = {
+  peacock: '🦚', tiger: '🐯', elephant: '🐘', cobra: '🐍', bear: '🐻',
+  hornbill: '🦜', parrot: '🦜', deer: '🦌', leopard: '🐆', monkey: '🐒',
+  crocodile: '🐊', flamingo: '🦩', eagle: '🦅', owl: '🦉', dolphin: '🐬',
+  turtle: '🐢', snake: '🐍', frog: '🐸', lion: '🦁', rhino: '🦏',
+  wolf: '🐺', fox: '🦊', bird: '🐦', fish: '🐟',
+};
+
+function getEmoji(name) {
+  if (!name) return '🐾';
+  const n = name.toLowerCase();
+  for (const [key, emoji] of Object.entries(EMOJI_MAP)) {
+    if (n.includes(key)) return emoji;
+  }
+  return '🐾';
+}
 
 const { width } = Dimensions.get('window');
 
@@ -35,11 +54,14 @@ const CONSERVATION_COLOR = {
 export default function CatchResultScreen({ navigation, route }) {
   const { base64, uri, lat, lng } = route.params;
   const { addCatch, hasCaught } = useCatchStore();
+  const addPost = useSocialStore(s => s.addPost);
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [state,     setState]     = useState('loading'); // loading | result | notfound | error
   const [result,    setResult]    = useState(null);
   const [saved,     setSaved]     = useState(false);
+  const [shared,    setShared]    = useState(false);
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
@@ -60,6 +82,30 @@ export default function CatchResultScreen({ navigation, route }) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2500);
+  };
+
+  const handleShareToCommunity = () => {
+    if (shared || !result) return;
+    addPost({
+      id: `post_${Date.now()}`,
+      userId: user?.phone ?? 'me',
+      username: user?.username ?? 'Explorer',
+      city: 'India',
+      species: result.name,
+      scientific: result.scientific,
+      rarity: result.rarity,
+      xp: result.xp,
+      emoji: getEmoji(result.name),
+      caption: `Just caught a ${result.name}! 🌿`,
+      location: 'My Location',
+      aqi: null,
+      createdAt: new Date().toISOString(),
+      spottedBy: [],
+      comments: 0,
+      isStory: result.rarity === 'Rare' || result.rarity === 'Legendary',
+    });
+    setShared(true);
+    Haptics.selectionAsync();
   };
 
   // ── Loading ─────────────────────────────────────────────────
@@ -211,6 +257,20 @@ export default function CatchResultScreen({ navigation, route }) {
             </TouchableOpacity>
           )}
 
+          {saved && !shared && (
+            <TouchableOpacity style={s.shareBtn} onPress={handleShareToCommunity} activeOpacity={0.85}>
+              <Ionicons name="people" size={18} color={C.text} />
+              <Text style={s.shareBtnText}>Share to Community</Text>
+            </TouchableOpacity>
+          )}
+
+          {shared && (
+            <View style={s.sharedCard}>
+              <Ionicons name="checkmark-circle" size={18} color={C.blue} />
+              <Text style={s.sharedText}>Posted to Community!</Text>
+            </View>
+          )}
+
           <TouchableOpacity style={s.retrySmall} onPress={() => navigation.goBack()}>
             <Ionicons name="camera" size={18} color={C.accent} />
             <Text style={s.retrySmallText}>Snap Another</Text>
@@ -293,6 +353,10 @@ const s = StyleSheet.create({
   addBtnText: { fontSize: 17, fontWeight: 'bold', color: C.bg },
   savedCard:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: C.green + '20', borderRadius: 16, paddingVertical: 18, borderWidth: 1, borderColor: C.green + '50' },
   savedText:  { fontSize: 16, fontWeight: '700', color: C.green },
+  shareBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: C.primary, borderRadius: 14, paddingVertical: 14, gap: 8, borderWidth: 1, borderColor: C.border },
+  shareBtnText: { fontSize: 15, fontWeight: '700', color: C.text },
+  sharedCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.blue + '20', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: C.blue + '50' },
+  sharedText: { fontSize: 14, fontWeight: '700', color: C.blue },
   retrySmall: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: C.border },
   retrySmallText: { fontSize: 15, fontWeight: '600', color: C.accent },
 });
