@@ -7,6 +7,36 @@ export const SPECIES_EMOJI = {
   Fish: '🐠', Reptile: '🦎', Other: '🐾',
 };
 
+export const NEAREST_VET = {
+  name: 'Dr. Mehta Pet Clinic', distance: 1.2, phone: '+91-98100-12345',
+};
+
+const ALL_VETS = [
+  { name: 'Dr. Mehta Pet Clinic',          city: 'Delhi',     distance: 1.2, phone: '+91-98100-12345' },
+  { name: 'Happy Paws Vet Hospital',        city: 'Delhi',     distance: 2.5, phone: '+91-11-2345-6789' },
+  { name: 'Mumbai Animal Care Centre',      city: 'Mumbai',    distance: 0.8, phone: '+91-22-6789-0123' },
+  { name: 'PetCure Veterinary Clinic',      city: 'Mumbai',    distance: 1.9, phone: '+91-98765-43210' },
+  { name: 'Bangalore Pet Hospital',         city: 'Bangalore', distance: 1.1, phone: '+91-80-4567-8901' },
+  { name: 'Chennai Animal Rescue & Vet',    city: 'Chennai',   distance: 2.3, phone: '+91-44-7890-1234' },
+  { name: 'Hyderabad Pet Care',             city: 'Hyderabad', distance: 1.7, phone: '+91-40-2345-6789' },
+  { name: 'Kolkata Animal Hospital',        city: 'Kolkata',   distance: 2.1, phone: '+91-33-4567-8901' },
+];
+
+export function getNearestVet(city = 'Delhi') {
+  const match = ALL_VETS.filter(v => v.city === city).sort((a, b) => a.distance - b.distance);
+  return match[0] ?? ALL_VETS[0];
+}
+
+const PUBLIC_SPOTS = [
+  'Lodi Garden, Delhi',
+  'Cubbon Park, Bangalore',
+  'Shivaji Park, Mumbai',
+  'Gandhi Beach, Chennai',
+  'Eco Park, Kolkata',
+  'Sanjay Gandhi National Park, Mumbai',
+  'Nehru Park, Delhi',
+];
+
 export const TEMPERAMENT_OPTIONS = [
   'Playful', 'Friendly', 'Calm', 'Energetic',
   'Shy', 'Independent', 'Loyal', 'Curious', 'Protective', 'Gentle',
@@ -93,6 +123,8 @@ export default create(
       outgoingRequests: [],
       incomingRequests: INIT_INCOMING,
       petFriendships:   [],
+      activeMeetups:    [],
+      completedMeetups: [],
 
       addPet: (pet) => set(s => ({
         myPets: [...s.myPets, {
@@ -131,6 +163,32 @@ export default create(
       cancelOutgoing: (requestId) => set(s => ({
         outgoingRequests: s.outgoingRequests.filter(r => r.id !== requestId),
       })),
+
+      startMeetup: (myPet, theirPet) => {
+        const id       = `meetup-${Date.now()}`;
+        const location = PUBLIC_SPOTS[Math.floor(Math.random() * PUBLIC_SPOTS.length)];
+        set(s => ({
+          activeMeetups: [...s.activeMeetups, {
+            id, myPet, theirPet,
+            startedAt: new Date().toISOString(),
+            location,
+          }],
+        }));
+        return id;
+      },
+
+      completeMeetup: (meetupId, rating) => {
+        const meetup = get().activeMeetups.find(m => m.id === meetupId);
+        if (!meetup) return;
+        set(s => ({
+          activeMeetups:    s.activeMeetups.filter(m => m.id !== meetupId),
+          completedMeetups: [...s.completedMeetups, {
+            ...meetup,
+            endedAt: new Date().toISOString(),
+            rating,
+          }],
+        }));
+      },
 
       acceptIncoming: (requestId, myPet) => {
         const req = get().incomingRequests.find(r => r.id === requestId);
