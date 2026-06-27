@@ -187,6 +187,21 @@ export default function DiscoverScreen({ navigation }) {
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
 
+      {/* Pet Playdates */}
+      <SectionHeader title="Pet Playdates" link="See all" onLink={() => navigation.navigate('PetPlaydates')} />
+      <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('PetPlaydates')}>
+        <View style={s.leaderLeft}>
+          <View style={[s.leaderIconBox, { backgroundColor: C.green + '20' }]}>
+            <Ionicons name="paw" size={22} color={C.green} />
+          </View>
+          <View>
+            <Text style={s.leaderTitle}>Find Pet Playmates</Text>
+            <Text style={s.leaderSub}>Discover pets nearby + AI compatibility</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+      </TouchableOpacity>
+
       {/* Missions */}
       <SectionHeader title="Missions" link="See all" onLink={() => navigation.navigate('Missions')} />
       <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('Missions')}>
