@@ -1,12 +1,12 @@
 import React from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import usePetStore, { SPECIES_EMOJI } from '../../store/usePetStore';
+import usePetStore, { SPECIES_EMOJI, getNearestVet } from '../../store/usePetStore';
 import { getCompatibility } from '../../services/gemini';
 import { C } from '../../theme/colors';
 
@@ -38,6 +38,7 @@ export default function PetDetailScreen({ route, navigation }) {
   const [loading, setLoading] = React.useState(false);
 
   const alreadySent = selectedMyPet ? hasSentRequest(selectedMyPet.id, pet.id) : false;
+  const vet         = getNearestVet(pet.owner.city);
 
   // Reset compat when pet selection changes
   React.useEffect(() => { setCompat(null); }, [selectedMyPet]);
@@ -226,6 +227,30 @@ export default function PetDetailScreen({ route, navigation }) {
           </View>
         </View>
 
+        {/* Nearest vet */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Nearest Vet (for meetup)</Text>
+          <TouchableOpacity
+            style={s.vetCard}
+            activeOpacity={0.85}
+            onPress={() => Linking.openURL(`tel:${vet.phone}`)}
+          >
+            <View style={s.vetLeft}>
+              <View style={s.vetIcon}>
+                <Ionicons name="medical" size={18} color={C.red} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.vetName}>{vet.name}</Text>
+                <Text style={s.vetMeta}>{vet.distance} km · {vet.phone}</Text>
+              </View>
+            </View>
+            <View style={s.vetCallBtn}>
+              <Ionicons name="call" size={14} color={C.text} />
+              <Text style={s.vetCallText}>Call</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Safety note */}
         <View style={s.safetyCard}>
           <Ionicons name="shield-checkmark-outline" size={18} color={C.green} />
@@ -323,6 +348,14 @@ const s = StyleSheet.create({
   healthLabel: { flex: 1, fontSize: 13, color: C.muted, fontWeight: '600' },
   healthValue: { fontSize: 13, color: C.text, fontWeight: '600' },
   divider:     { height: 1, backgroundColor: C.border },
+
+  vetCard:    { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.red + '40', gap: 12 },
+  vetLeft:    { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  vetIcon:    { width: 36, height: 36, borderRadius: 18, backgroundColor: C.red + '20', alignItems: 'center', justifyContent: 'center' },
+  vetName:    { fontSize: 13, fontWeight: '700', color: C.text },
+  vetMeta:    { fontSize: 11, color: C.muted, marginTop: 2 },
+  vetCallBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.red, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  vetCallText:{ fontSize: 12, fontWeight: '700', color: C.text },
 
   safetyCard: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 16, backgroundColor: C.green + '15', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: C.green + '40' },
   safetyText: { flex: 1, fontSize: 12, color: C.muted, lineHeight: 18 },

@@ -5,7 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import usePetStore, { NEARBY_PETS, SPECIES_EMOJI } from '../../store/usePetStore';
+import usePetStore, { NEARBY_PETS, SPECIES_EMOJI, getNearestVet } from '../../store/usePetStore';
 import { C } from '../../theme/colors';
 
 const RADII = [
@@ -29,8 +29,11 @@ export default function PetPlaydatesScreen({ navigation }) {
   const myPets          = usePetStore(s => s.myPets);
   const outgoing        = usePetStore(s => s.outgoingRequests);
   const incoming        = usePetStore(s => s.incomingRequests);
+  const friendships     = usePetStore(s => s.petFriendships);
+  const completedMeetups= usePetStore(s => s.completedMeetups);
   const declineIncoming = usePetStore(s => s.declineIncoming);
   const acceptIncoming  = usePetStore(s => s.acceptIncoming);
+  const startMeetup     = usePetStore(s => s.startMeetup);
   const cancelOutgoing  = usePetStore(s => s.cancelOutgoing);
   const deletePet       = usePetStore(s => s.deletePet);
 
@@ -38,9 +41,14 @@ export default function PetPlaydatesScreen({ navigation }) {
   const nearbyFiltered = NEARBY_PETS.filter(p => p.owner.distance <= radius);
   const requestCount   = incoming.length;
 
-  function handleAccept(reqId) {
-    acceptIncoming(reqId, myPets[0] ?? null);
+  function handleAccept(req) {
+    const myPet = myPets[0] ?? null;
+    acceptIncoming(req.id, myPet);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (myPet) {
+      const meetupId = startMeetup(myPet, req.theirPet);
+      navigation.navigate('Meetup', { meetupId });
+    }
   }
 
   function confirmDelete(pet) {
@@ -68,9 +76,10 @@ export default function PetPlaydatesScreen({ navigation }) {
       {/* Tab bar */}
       <View style={s.tabBar}>
         {[
-          { key: 'nearby',   label: 'Nearby'                                            },
+          { key: 'nearby',   label: 'Nearby'                                                },
           { key: 'requests', label: requestCount ? `Requests (${requestCount})` : 'Requests' },
-          { key: 'mypets',   label: 'My Pets'                                           },
+          { key: 'friends',  label: `Friends${friendships.length ? ` (${friendships.length})` : ''}` },
+          { key: 'mypets',   label: 'My Pets'                                             },
         ].map(t => (
           <TouchableOpacity
             key={t.key}
@@ -149,7 +158,7 @@ export default function PetPlaydatesScreen({ navigation }) {
                       </Text>
                     </View>
                     <View style={s.reqActions}>
-                      <TouchableOpacity style={s.acceptBtn} onPress={() => handleAccept(req.id)}>
+                      <TouchableOpacity style={s.acceptBtn} onPress={() => handleAccept(req)}>
                         <Ionicons name="checkmark" size={18} color={C.text} />
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -189,6 +198,45 @@ export default function PetPlaydatesScreen({ navigation }) {
 
             {incoming.length === 0 && outgoing.length === 0 && (
               <EmptyState icon="💌" title="No requests yet" sub="Browse nearby pets and send a Meet request!" />
+            )}
+          </View>
+        )}
+
+        {/* ── FRIENDS ── */}
+        {tab === 'friends' && (
+          <View style={s.section}>
+            {friendships.length === 0 ? (
+              <EmptyState icon="🐾" title="No pet friends yet" sub="Accept a meet request to start your pet's social network!" />
+            ) : (
+              friendships.map((f, i) => {
+                const met = completedMeetups.find(
+                  m => m.theirPet.id === f.theirPet.id
+                );
+                return (
+                  <View key={i} style={s.friendCard}>
+                    <View style={s.reqEmojiBox}>
+                      <Text style={{ fontSize: 26 }}>{SPECIES_EMOJI[f.theirPet.species] ?? '🐾'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.reqName}>{f.theirPet.name}</Text>
+                      <Text style={s.reqSub}>{f.theirPet.breed} · @{f.theirPet.owner.username}</Text>
+                      {met?.rating?.stars > 0 && (
+                        <View style={s.ratingRow}>
+                          {Array.from({ length: 5 }).map((_, j) => (
+                            <Text key={j} style={{ fontSize: 11, color: j < met.rating.stars ? C.accent : C.border }}>★</Text>
+                          ))}
+                          {met.rating.meetAgain === 'Yes! 🐾' && (
+                            <Text style={{ fontSize: 11, color: C.green, marginLeft: 4 }}>Meet again ✓</Text>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                    <View style={s.friendBadge}>
+                      <Text style={s.friendBadgeText}>Friends</Text>
+                    </View>
+                  </View>
+                );
+              })
             )}
           </View>
         )}
@@ -309,4 +357,9 @@ const s = StyleSheet.create({
   emptyBox:       { alignItems: 'center', paddingVertical: 48, gap: 8 },
   emptyTitle:     { fontSize: 16, fontWeight: '700', color: C.text },
   emptyText:      { fontSize: 13, color: C.muted, textAlign: 'center' },
+
+  friendCard:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: C.border },
+  ratingRow:     { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  friendBadge:   { backgroundColor: C.green + '25', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  friendBadgeText:{ fontSize: 11, fontWeight: '700', color: C.green },
 });
