@@ -48,6 +48,53 @@ const demoResult = () => ({
   isDemo: true,
 });
 
+export async function getCompatibility(pet1, pet2) {
+  if (!API_KEY) return _fallbackCompat(pet1, pet2);
+
+  const prompt = `You are a pet compatibility expert. Analyse these two pets and return ONLY a valid JSON object (no markdown):
+{
+  "score": 85,
+  "summary": "One sentence on why they match or don't",
+  "tips": ["Tip 1 for a safe first meeting", "Tip 2"]
+}
+
+Pet A: ${pet1.name}, ${pet1.species} (${pet1.breed}), age ${pet1.age} years, temperament: ${pet1.temperament.join(', ')}
+Pet B: ${pet2.name}, ${pet2.species} (${pet2.breed}), age ${pet2.age} years, temperament: ${pet2.temperament.join(', ')}
+
+Score 0–100 based on energy match, temperament overlap, and species compatibility. Return JSON only.`;
+
+  try {
+    const res = await fetch(`${API_URL}?key=${API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 256 },
+      }),
+    });
+    if (!res.ok) return _fallbackCompat(pet1, pet2);
+    const json    = await res.json();
+    const raw     = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return _fallbackCompat(pet1, pet2);
+  }
+}
+
+function _fallbackCompat(pet1, pet2) {
+  const shared = pet1.temperament.filter(t => pet2.temperament.includes(t)).length;
+  const total  = new Set([...pet1.temperament, ...pet2.temperament]).size;
+  const base   = Math.round(40 + (shared / Math.max(total, 1)) * 45);
+  const bonus  = pet1.species === pet2.species ? 10 : 0;
+  const score  = Math.min(base + bonus, 95);
+  return {
+    score,
+    summary: `${pet1.name} and ${pet2.name} share ${shared} personality trait${shared !== 1 ? 's' : ''} in common.`,
+    tips: ['Meet in a neutral, open area like a park', 'Keep both pets on leash for the first 10 minutes'],
+  };
+}
+
 export async function identifyAnimal(base64Image) {
   if (!API_KEY) {
     await new Promise(r => setTimeout(r, 1200));

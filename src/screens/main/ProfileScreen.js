@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import useCatchStore from '../../store/useCatchStore';
 import useFriendStore from '../../store/useFriendStore';
+import usePetStore    from '../../store/usePetStore';
 import { C } from '../../theme/colors';
 
 const XP_TRACKS = [
@@ -52,6 +53,7 @@ export default function ProfileScreen({ navigation }) {
   const totalXP        = getTotalXP();
   const catchCount     = catches.length;
 
+  const myPetCount     = usePetStore(s => s.myPets.length);
   const friendCount    = useFriendStore(s => s.friends.length);
   const requestCount   = useFriendStore(s => s.requests.length);
   const getTotalUnread = useFriendStore(s => s.getTotalUnread);
@@ -228,6 +230,23 @@ export default function ProfileScreen({ navigation }) {
             )}
             <Ionicons name="chevron-forward" size={18} color={C.muted} />
           </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[s.socialCard, { marginTop: 8 }]}
+          activeOpacity={0.85}
+          onPress={() => navigation.getParent()?.navigate('Discover', { screen: 'PetPlaydates' })}
+        >
+          <View style={s.socialLeft}>
+            <View style={[s.socialIcon, { backgroundColor: C.green + '20' }]}>
+              <Ionicons name="paw" size={20} color={C.green} />
+            </View>
+            <View>
+              <Text style={s.socialTitle}>My Pets</Text>
+              <Text style={s.socialSub}>{myPetCount > 0 ? `${myPetCount} pet profile${myPetCount > 1 ? 's' : ''}` : 'Add a pet to find playmates'}</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
         </TouchableOpacity>
 
         {/* Health Tracking */}
