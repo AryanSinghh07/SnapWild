@@ -58,10 +58,12 @@ export default function DiscoverScreen({ navigation }) {
   const progress   = Math.min((catchCount - prevGoal) / (mission.goal - prevGoal), 1);
   const recent     = catches.slice(0, 3);
 
-  const allPosts  = useSocialStore(s => s.posts);
-  const rarePosts = React.useMemo(
-    () => allPosts.filter(p => p.rarity === 'Rare' || p.rarity === 'Legendary').slice(0, 6),
-    [allPosts]
+  // Read posts once on mount without subscribing — avoids useSyncExternalStore
+  // re-render loop caused by AsyncStorage hydration changing array references
+  const [rarePosts] = React.useState(() =>
+    useSocialStore.getState().posts
+      .filter(p => p.rarity === 'Rare' || p.rarity === 'Legendary')
+      .slice(0, 6)
   );
 
   const [refreshing, setRefreshing] = React.useState(false);
