@@ -58,8 +58,10 @@ export default function DiscoverScreen({ navigation }) {
   const progress   = Math.min((catchCount - prevGoal) / (mission.goal - prevGoal), 1);
   const recent     = catches.slice(0, 3);
 
-  const rarePosts = useSocialStore(s =>
-    s.posts.filter(p => p.rarity === 'Rare' || p.rarity === 'Legendary').slice(0, 6)
+  const allPosts  = useSocialStore(s => s.posts);
+  const rarePosts = React.useMemo(
+    () => allPosts.filter(p => p.rarity === 'Rare' || p.rarity === 'Legendary').slice(0, 6),
+    [allPosts]
   );
 
   const [refreshing, setRefreshing] = React.useState(false);
