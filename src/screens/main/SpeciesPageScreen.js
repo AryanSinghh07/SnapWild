@@ -52,8 +52,11 @@ export default function SpeciesPageScreen({ route, navigation }) {
   const { species, emoji = '🐾', rarity = 'Common', scientific = '' } = route.params ?? {};
   const insets  = useSafeAreaInsets();
 
-  const catches = useCatchStore(s => s.catches);
-  const posts   = useSocialStore(s => s.posts);
+  const catches          = useCatchStore(s => s.catches);
+  const posts            = useSocialStore(s => s.posts);
+  const followedSpecies  = useSocialStore(s => s.followedSpecies);
+  const followSpecies    = useSocialStore(s => s.followSpecies);
+  const isFollowing      = followedSpecies.includes(species);
 
   const rarityColor = RARITY_COLOR[rarity] ?? C.gray;
   const iucn        = iucnFor(species);
@@ -107,6 +110,16 @@ export default function SpeciesPageScreen({ route, navigation }) {
           <Text style={s.heroEmoji}>{emoji}</Text>
           <Text style={s.heroName}>{species}</Text>
           {!!scientific && <Text style={s.heroSci}>{scientific}</Text>}
+          <TouchableOpacity
+            style={[s.followBtn, isFollowing && { backgroundColor: rarityColor, borderColor: rarityColor }]}
+            onPress={() => followSpecies(species)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name={isFollowing ? 'checkmark' : 'add'} size={14} color={isFollowing ? C.bg : rarityColor} />
+            <Text style={[s.followBtnText, isFollowing && { color: C.bg }]}>
+              {isFollowing ? 'Following' : 'Follow Species'}
+            </Text>
+          </TouchableOpacity>
           <View style={s.heroBadges}>
             <View style={[s.rarityBadge, { backgroundColor: rarityColor + '20', borderColor: rarityColor + '50' }]}>
               <Text style={[s.rarityBadgeText, { color: rarityColor }]}>{rarity}</Text>
@@ -256,7 +269,9 @@ const s = StyleSheet.create({
   },
   heroEmoji:   { fontSize: 64, marginBottom: 4 },
   heroName:    { fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center' },
-  heroSci:     { fontSize: 13, color: C.muted, fontStyle: 'italic', textAlign: 'center' },
+  heroSci:      { fontSize: 13, color: C.muted, fontStyle: 'italic', textAlign: 'center' },
+  followBtn:    { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6, borderRadius: 20, borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 7 },
+  followBtnText:{ fontSize: 13, fontWeight: '700' },
   heroBadges:  { flexDirection: 'row', gap: 8, marginTop: 6 },
   rarityBadge: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 4 },
   rarityBadgeText: { fontSize: 12, fontWeight: '700' },

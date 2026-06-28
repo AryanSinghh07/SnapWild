@@ -96,10 +96,12 @@ const SEED_COMMENTS = {
 const useSocialStore = create(
   persist(
     (set, get) => ({
-      posts:        SEED,
-      mySpotted:    {},
-      bookmarks:    [],
-      postComments: SEED_COMMENTS,
+      posts:           SEED,
+      mySpotted:       {},
+      bookmarks:       [],
+      postComments:    SEED_COMMENTS,
+      followedSpecies: [],
+      flags:           {},
 
       addPost: (post) =>
         set(s => ({ posts: [post, ...s.posts] })),
@@ -148,6 +150,41 @@ const useSocialStore = create(
       isSpotted:    (postId) => !!get().mySpotted[postId],
       isBookmarked: (postId) => get().bookmarks.includes(postId),
       getStories:   ()       => get().posts.filter(p => p.isStory).slice(0, 8),
+
+      repostWithNote: (originalPost, note, username) =>
+        set(s => ({
+          posts: [{
+            id:           `rp_${Date.now()}`,
+            userId:       'me',
+            username:     username ?? 'Explorer',
+            city:         originalPost.city ?? '',
+            species:      originalPost.species,
+            scientific:   originalPost.scientific ?? '',
+            rarity:       originalPost.rarity,
+            xp:           originalPost.xp,
+            emoji:        originalPost.emoji,
+            caption:      note.trim() || `Check out what ${originalPost.username} found!`,
+            location:     originalPost.location ?? '',
+            aqi:          null,
+            createdAt:    new Date().toISOString(),
+            spottedBy:    [],
+            comments:     0,
+            isStory:      false,
+            repostedFrom: originalPost.username,
+          }, ...s.posts],
+        })),
+
+      flagPost: (postId, reason) =>
+        set(s => ({ flags: { ...s.flags, [postId]: reason } })),
+
+      followSpecies: (species) =>
+        set(s => ({
+          followedSpecies: s.followedSpecies.includes(species)
+            ? s.followedSpecies.filter(x => x !== species)
+            : [...s.followedSpecies, species],
+        })),
+
+      isFollowingSpecies: (species) => get().followedSpecies.includes(species),
     }),
     { name: 'snapwild-social-v1', storage: createJSONStorage(() => AsyncStorage) }
   )

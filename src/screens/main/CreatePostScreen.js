@@ -8,6 +8,8 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import useSocialStore from '../../store/useSocialStore';
 import useCatchStore  from '../../store/useCatchStore';
+import usePetStore    from '../../store/usePetStore';
+import { SPECIES_EMOJI } from '../../store/usePetStore';
 import { useAuth }    from '../../context/AuthContext';
 import { C } from '../../theme/colors';
 
@@ -40,12 +42,14 @@ export default function CreatePostScreen({ navigation }) {
   const addPost  = useSocialStore(s => s.addPost);
   const catches  = useCatchStore(s => s.catches);
 
-  const [postType,  setPostType]  = React.useState(POST_TYPES[0]);
-  const [caption,   setCaption]   = React.useState('');
-  const [species,   setSpecies]   = React.useState('');
-  const [city,      setCity]      = React.useState(CITIES[0]);
-  const [submitting,setSubmitting]= React.useState(false);
+  const [postType,   setPostType]   = React.useState(POST_TYPES[0]);
+  const [caption,    setCaption]    = React.useState('');
+  const [species,    setSpecies]    = React.useState('');
+  const [city,       setCity]       = React.useState(CITIES[0]);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [selectedPet,setSelectedPet]= React.useState(null);
 
+  const myPets      = usePetStore(s => s.myPets);
   const recentCatch = catches[0];
 
   function handleSelectCatch(c) {
@@ -82,6 +86,7 @@ export default function CreatePostScreen({ navigation }) {
       spottedBy:  [],
       comments:   0,
       isStory:    isRare,
+      ...(selectedPet ? { petId: selectedPet.id, petName: selectedPet.name } : {}),
     });
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -136,6 +141,32 @@ export default function CreatePostScreen({ navigation }) {
             })}
           </View>
         </View>
+
+        {/* Pet selector (if Pet Moment) */}
+        {postType.key === 'pet' && myPets.length > 0 && (
+          <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+            <Label text="Tag Your Pet (optional)" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {myPets.map(p => {
+                  const selected = selectedPet?.id === p.id;
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[s.catchChip, selected && { borderColor: C.accent, backgroundColor: C.accent + '15' }]}
+                      onPress={() => { setSelectedPet(selected ? null : p); Haptics.selectionAsync(); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={{ fontSize: 20 }}>{SPECIES_EMOJI[p.species] ?? '🐾'}</Text>
+                      <Text style={[s.catchChipName, selected && { color: C.accent }]} numberOfLines={1}>{p.name}</Text>
+                      <Text style={{ fontSize: 9, color: C.muted }}>{p.species}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        )}
 
         {/* Link to recent catch (if catch share) */}
         {postType.key === 'catch' && catches.length > 0 && (
