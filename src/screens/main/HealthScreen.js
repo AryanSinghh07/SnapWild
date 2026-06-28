@@ -147,6 +147,9 @@ export default function HealthScreen({ navigation }) {
           </View>
         </View>
 
+        {/* Weekly Nature Report */}
+        <WeeklyReport weekly={weekly} />
+
         {/* Outdoor Session */}
         <View style={s.sessionCard}>
           <View style={s.sessionTop}>
@@ -255,6 +258,83 @@ export default function HealthScreen({ navigation }) {
 }
 
 // ── Sub-components ──────────────────────────────────────────────
+
+function WeeklyReport({ weekly }) {
+  const totalSteps   = weekly.reduce((a, d) => a + (d.steps   ?? 0), 0);
+  const totalMins    = weekly.reduce((a, d) => a + (d.minutes ?? 0), 0);
+  const activeDays   = weekly.filter(d => d.steps > 0 || d.minutes > 0).length;
+  const bestDay      = weekly.reduce((best, d) => (d.steps > (best?.steps ?? 0) ? d : best), null);
+  const stepGoal     = 70000; // 10k/day × 7
+  const progress     = Math.min(totalSteps / stepGoal, 1);
+
+  const today        = new Date().toLocaleDateString('en-IN', { weekday: 'long' });
+  const isSunday     = new Date().getDay() === 0;
+
+  return (
+    <View style={wr.card}>
+      <View style={wr.header}>
+        <Ionicons name="calendar" size={18} color={C.accent} />
+        <Text style={wr.title}>Weekly Nature Report</Text>
+        {isSunday && <View style={wr.newBadge}><Text style={wr.newText}>New</Text></View>}
+      </View>
+
+      <View style={wr.row}>
+        <WRStat icon="footsteps" label="Steps"       value={totalSteps.toLocaleString()} color={C.blue}   />
+        <WRStat icon="time"      label="Outdoors"    value={`${totalMins}m`}             color={C.green}  />
+        <WRStat icon="sunny"     label="Active Days" value={`${activeDays}/7`}           color={C.accent} />
+      </View>
+
+      <View style={wr.goalRow}>
+        <Text style={wr.goalLabel}>Weekly step goal</Text>
+        <Text style={wr.goalPct}>{Math.round(progress * 100)}%</Text>
+      </View>
+      <View style={wr.goalTrack}>
+        <View style={[wr.goalFill, { width: `${progress * 100}%` }]} />
+      </View>
+
+      {bestDay && bestDay.steps > 0 && (
+        <Text style={wr.bestDay}>
+          🏆 Best day: {bestDay.label} — {bestDay.steps.toLocaleString()} steps
+        </Text>
+      )}
+
+      <Text style={wr.tip}>
+        {totalMins >= 120
+          ? '🌟 You hit the 120-minute nature therapy target this week!'
+          : `🌿 ${120 - totalMins} more minutes outdoors to hit your weekly target`}
+      </Text>
+    </View>
+  );
+}
+
+function WRStat({ icon, label, value, color }) {
+  return (
+    <View style={wr.stat}>
+      <Ionicons name={icon} size={16} color={color} />
+      <Text style={[wr.statVal, { color }]}>{value}</Text>
+      <Text style={wr.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+const wr = StyleSheet.create({
+  card:       { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: C.border },
+  header:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  title:      { fontSize: 15, fontWeight: '700', color: C.text, flex: 1 },
+  newBadge:   { backgroundColor: C.accent, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  newText:    { fontSize: 10, fontWeight: 'bold', color: C.bg },
+  row:        { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  stat:       { flex: 1, backgroundColor: C.card2, borderRadius: 12, padding: 10, alignItems: 'center', gap: 3 },
+  statVal:    { fontSize: 16, fontWeight: 'bold' },
+  statLabel:  { fontSize: 9, color: C.muted, fontWeight: '600' },
+  goalRow:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  goalLabel:  { fontSize: 12, color: C.muted },
+  goalPct:    { fontSize: 12, fontWeight: '700', color: C.accent },
+  goalTrack:  { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 12 },
+  goalFill:   { height: 6, backgroundColor: C.accent, borderRadius: 3 },
+  bestDay:    { fontSize: 12, color: C.text, fontWeight: '600', marginBottom: 6 },
+  tip:        { fontSize: 12, color: C.muted, lineHeight: 18 },
+});
 
 function ScoreChip({ icon, label, value, color }) {
   return (

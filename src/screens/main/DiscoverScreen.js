@@ -248,6 +248,21 @@ export default function DiscoverScreen({ navigation }) {
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
 
+      {/* Health & Wellness shortcut */}
+      <SectionHeader title="Health & Wellness" link="Open" onLink={() => navigation.navigate('Health')} />
+      <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('Health')}>
+        <View style={s.leaderLeft}>
+          <View style={[s.leaderIconBox, { backgroundColor: C.green + '20' }]}>
+            <Ionicons name="leaf" size={22} color={C.green} />
+          </View>
+          <View>
+            <Text style={s.leaderTitle}>Nature Therapy Tracker</Text>
+            <Text style={s.leaderSub}>Steps · Mood · Outdoor time · Score</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+      </TouchableOpacity>
+
       {/* Rare & Legendary catches (4.9.6) */}
       <SectionHeader title="Your Rare Catches" link="See all" onLink={() => navigation.getParent()?.navigate('Collection')} />
       {rareCatches.length > 0 ? (

@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, Image, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, Dimensions,
+  StyleSheet, ActivityIndicator, Dimensions, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import * as Speech  from 'expo-speech';
 import { identifyAnimal } from '../../services/gemini';
 import useCatchStore from '../../store/useCatchStore';
 import useSocialStore from '../../store/useSocialStore';
@@ -58,11 +59,12 @@ export default function CatchResultScreen({ navigation, route }) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  const [state,     setState]     = useState('loading'); // loading | result | notfound | error
-  const [result,    setResult]    = useState(null);
-  const [saved,     setSaved]     = useState(false);
-  const [shared,    setShared]    = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const [state,        setState]        = useState('loading'); // loading | result | notfound | error
+  const [result,       setResult]       = useState(null);
+  const [saved,        setSaved]        = useState(false);
+  const [shared,       setShared]       = useState(false);
+  const [showToast,    setShowToast]    = useState(false);
+  const [showBreathing, setShowBreathing] = useState(false);
 
   useEffect(() => {
     identifyAnimal(base64).then(data => {
@@ -82,6 +84,9 @@ export default function CatchResultScreen({ navigation, route }) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2500);
+    if (result.rarity === 'Rare' || result.rarity === 'Legendary') {
+      setTimeout(() => setShowBreathing(true), 1800);
+    }
   };
 
   const handleShareToCommunity = () => {
@@ -289,9 +294,141 @@ export default function CatchResultScreen({ navigation, route }) {
       </View>
     </ScrollView>
     <Toast visible={showToast} message={`${result?.name} added to collection!`} />
+    <BreathingModal
+      visible={showBreathing}
+      rarity={result?.rarity}
+      onClose={() => setShowBreathing(false)}
+    />
     </View>
   );
 }
+
+const BREATH_PHASES = [
+  { key: 'inhale', label: 'Breathe In',  speech: 'Breathe in',  duration: 4, color: C.blue   },
+  { key: 'hold',   label: 'Hold',        speech: 'Hold',        duration: 4, color: C.accent  },
+  { key: 'exhale', label: 'Breathe Out', speech: 'Breathe out', duration: 6, color: C.green  },
+];
+
+function BreathingModal({ visible, rarity, onClose }) {
+  const [phase,   setPhase]   = useState('idle');
+  const [counter, setCounter] = useState(0);
+  const timerRef  = useRef(null);
+  const tickRef   = useRef(null);
+  const phaseIdx  = useRef(0);
+  const secRef    = useRef(0);
+  const col       = RARITY_COLOR[rarity] ?? C.orange;
+
+  const announce = (ph) => {
+    Speech.stop();
+    Speech.speak(ph.speech, { rate: 0.75, pitch: 0.85, language: 'en-IN' });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  const start = () => {
+    phaseIdx.current = 0;
+    secRef.current   = 0;
+    const first = BREATH_PHASES[0];
+    setPhase(first.key);
+    setCounter(first.duration);
+    announce(first);
+    tickRef.current = setInterval(() => Haptics.selectionAsync(), 1000);
+    timerRef.current = setInterval(() => {
+      secRef.current++;
+      const cur = BREATH_PHASES[phaseIdx.current];
+      const remaining = cur.duration - secRef.current;
+      if (remaining <= 0) {
+        phaseIdx.current = (phaseIdx.current + 1) % BREATH_PHASES.length;
+        secRef.current   = 0;
+        const next = BREATH_PHASES[phaseIdx.current];
+        setPhase(next.key);
+        setCounter(next.duration);
+        announce(next);
+      } else {
+        setCounter(remaining);
+      }
+    }, 1000);
+  };
+
+  const stop = () => {
+    clearInterval(timerRef.current);
+    clearInterval(tickRef.current);
+    Speech.stop();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPhase('idle');
+    setCounter(0);
+  };
+
+  const handleClose = () => {
+    stop();
+    onClose();
+  };
+
+  useEffect(() => () => { clearInterval(timerRef.current); clearInterval(tickRef.current); Speech.stop(); }, []);
+
+  const cur = BREATH_PHASES.find(p => p.key === phase);
+
+  return (
+    <Modal transparent animationType="slide" visible={visible} onRequestClose={handleClose}>
+      <View style={bm.overlay}>
+        <View style={bm.card}>
+          <View style={[bm.rarityBadge, { backgroundColor: col + '20', borderColor: col + '50' }]}>
+            <Text style={[bm.rarityText, { color: col }]}>{rarity} Catch!</Text>
+          </View>
+          <Text style={bm.title}>Mindful Moment 🌿</Text>
+          <Text style={bm.sub}>Celebrate this rare find with 60 seconds of breathing</Text>
+
+          <View style={bm.phaseArea}>
+            {phase === 'idle' ? (
+              <Text style={bm.idleHint}>Tap Start to begin guided breathing</Text>
+            ) : (
+              <>
+                <View style={bm.dots}>
+                  {BREATH_PHASES.map(p => (
+                    <View key={p.key} style={[bm.dot, { backgroundColor: phase === p.key ? p.color : C.border }]} />
+                  ))}
+                </View>
+                <Text style={[bm.phaseLabel, { color: cur.color }]}>{cur.label}</Text>
+                <Text style={[bm.phaseCount, { color: cur.color }]}>{counter}</Text>
+              </>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[bm.startBtn, phase !== 'idle' && { backgroundColor: C.red }]}
+            onPress={phase === 'idle' ? start : stop}
+            activeOpacity={0.85}
+          >
+            <Ionicons name={phase === 'idle' ? 'play' : 'stop'} size={18} color="#fff" />
+            <Text style={bm.startBtnText}>{phase === 'idle' ? 'Start Breathing' : 'Stop'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={bm.skipBtn} onPress={handleClose}>
+            <Text style={bm.skipText}>Skip — go to my collection</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const bm = StyleSheet.create({
+  overlay:     { flex: 1, backgroundColor: '#000000AA', justifyContent: 'flex-end' },
+  card:        { backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, alignItems: 'center', gap: 12, paddingBottom: 40 },
+  rarityBadge: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6, borderWidth: 1 },
+  rarityText:  { fontSize: 13, fontWeight: '700' },
+  title:       { fontSize: 22, fontWeight: 'bold', color: C.text },
+  sub:         { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  phaseArea:   { width: '100%', alignItems: 'center', minHeight: 80, justifyContent: 'center', marginVertical: 8 },
+  idleHint:    { fontSize: 13, color: C.muted, fontStyle: 'italic' },
+  dots:        { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  dot:         { width: 10, height: 10, borderRadius: 5 },
+  phaseLabel:  { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  phaseCount:  { fontSize: 52, fontWeight: 'bold', lineHeight: 60 },
+  startBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 32, width: '100%', justifyContent: 'center' },
+  startBtnText:{ fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  skipBtn:     { paddingVertical: 10 },
+  skipText:    { fontSize: 13, color: C.muted },
+});
 
 function InfoChip({ icon, label, value, color }) {
   return (

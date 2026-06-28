@@ -16,6 +16,7 @@ import ReportInjuredScreen  from '../screens/main/ReportInjuredScreen';
 import CreatePostScreen     from '../screens/main/CreatePostScreen';
 import PostDetailScreen     from '../screens/main/PostDetailScreen';
 import SpeciesPageScreen    from '../screens/main/SpeciesPageScreen';
+import HealthScreen         from '../screens/main/HealthScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -38,6 +39,7 @@ export default function DiscoverStack() {
       <Stack.Screen name="CreatePost"    component={CreatePostScreen}    options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="PostDetail"    component={PostDetailScreen}    options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="SpeciesPage"   component={SpeciesPageScreen}   options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="Health"        component={HealthScreen}         options={{ animation: 'slide_from_right' }} />
     </Stack.Navigator>
   );
 }
