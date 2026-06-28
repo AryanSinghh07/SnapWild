@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import useRescueStore from '../../store/useRescueStore';
 import { C } from '../../theme/colors';
 
-const TABS = ['Feed', 'Map'];
+const TABS = ['Feed', 'Map', 'Vet Guide'];
 
 const SEV_COLOR = { High: C.red, Medium: C.orange, Low: C.green };
 const SEV_ICON  = { High: 'alert-circle', Medium: 'warning', Low: 'information-circle' };
@@ -154,6 +154,26 @@ export default function RescueAlertsScreen({ navigation }) {
         </ScrollView>
       )}
 
+      {/* ── VET GUIDE TAB (4.4.6) ── */}
+      {tab === 'Vet Guide' && (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+          <View style={s.vetHeader}>
+            <Ionicons name="medkit" size={22} color={C.green} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.vetHeaderTitle}>Wildlife First Aid Guide</Text>
+              <Text style={s.vetHeaderSub}>Species-specific advice from wildlife vets</Text>
+            </View>
+          </View>
+          {VET_CARDS.map(card => <VetCard key={card.species} card={card} />)}
+          <View style={s.vetDisclaimer}>
+            <Ionicons name="information-circle-outline" size={14} color={C.muted} />
+            <Text style={s.vetDisclaimerText}>
+              This is a quick-reference guide only. Always contact a licensed wildlife vet or NGO for professional assistance.
+            </Text>
+          </View>
+        </ScrollView>
+      )}
+
       {/* ── MAP TAB ── */}
       {tab === 'Map' && (
         <View style={{ flex: 1 }}>
@@ -190,6 +210,105 @@ export default function RescueAlertsScreen({ navigation }) {
         </View>
       )}
     </View>
+  );
+}
+
+const VET_CARDS = [
+  {
+    species: 'Dogs & Cats',
+    emoji: '🐕',
+    safeDistance: '1–2 metres',
+    doList:  ['Approach slowly from the side', 'Cover with a light cloth to calm', 'Call PETA/Friendicoes immediately', 'Keep water nearby but do not force-feed'],
+    dontList:['Do NOT pick up by the scruff', 'Do NOT muzzle if breathing is laboured', 'Do NOT give human medication'],
+    emergency: 'Friendicoes: +91-11-2461-0942',
+  },
+  {
+    species: 'Birds',
+    emoji: '🐦',
+    safeDistance: '0.5 metres',
+    doList:  ['Place in a dark, ventilated cardboard box', 'Keep warm and quiet', 'Contact local bird rescue within 1 hour', 'Place near window if stunned by glass'],
+    dontList:['Do NOT give water by dropper — aspiration risk', 'Do NOT handle wings unless visibly broken', 'Do NOT release at night'],
+    emergency: 'CARE Bangalore: +91-80-2337-9133',
+  },
+  {
+    species: 'Snakes',
+    emoji: '🐍',
+    safeDistance: '3 metres minimum',
+    doList:  ['Keep bystanders back — at least 3 metres', 'Note colour and markings for vet', 'Call Snake Helpline immediately', 'Keep the victim calm and still if bitten'],
+    dontList:['Do NOT attempt to pick up even if "dead"', 'Do NOT cut the bite or suck venom', 'Do NOT give alcohol or pain killers'],
+    emergency: 'Snake Helpline: 9300-999-000',
+  },
+  {
+    species: 'Deer & Antelope',
+    emoji: '🦌',
+    safeDistance: '5 metres',
+    doList:  ['Contact Forest Department immediately', 'Reduce noise around the animal', 'Block roads to prevent further injury', 'If orphaned fawn: cover with cloth, call NGO'],
+    dontList:['Do NOT chase or corner the animal', 'Do NOT offer food', 'Do NOT attempt to carry alone — severe kick risk'],
+    emergency: 'Forest Dept Helpline: 1926',
+  },
+  {
+    species: 'Monkeys',
+    emoji: '🐒',
+    safeDistance: '3 metres',
+    doList:  ['Keep crowds away immediately', 'Call Wildlife SOS', 'Provide water at safe distance if injured', 'Note if mother–infant pair'],
+    dontList:['Do NOT offer food — bite risk', 'Do NOT attempt to restrain', 'Do NOT make eye contact directly'],
+    emergency: 'Wildlife SOS: +91-8888-9000-90',
+  },
+  {
+    species: 'Large Wildlife (Elephant/Tiger/Leopard)',
+    emoji: '🐘',
+    safeDistance: '50 metres minimum',
+    doList:  ['Call Forest Department immediately: 1926', 'Block roads, clear civilians', 'Keep engine off and stay inside vehicle', 'Inform local village panchayat'],
+    dontList:['Do NOT approach under any circumstances', 'Do NOT use flash photography', 'Do NOT block escape routes'],
+    emergency: 'Forest Dept Emergency: 1926',
+  },
+];
+
+function VetCard({ card }) {
+  const [expanded, setExpanded] = React.useState(false);
+  return (
+    <TouchableOpacity
+      style={s.vetCard}
+      onPress={() => setExpanded(e => !e)}
+      activeOpacity={0.85}
+    >
+      <View style={s.vetCardHeader}>
+        <Text style={{ fontSize: 26 }}>{card.emoji}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.vetCardTitle}>{card.species}</Text>
+          <Text style={s.vetCardDist}>Safe distance: {card.safeDistance}</Text>
+        </View>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
+      </View>
+      {expanded && (
+        <View style={s.vetCardBody}>
+          <Text style={s.vetListLabel}>✅ Do</Text>
+          {card.doList.map((d, i) => (
+            <View key={i} style={s.vetListRow}>
+              <View style={[s.vetDot, { backgroundColor: C.green }]} />
+              <Text style={s.vetListText}>{d}</Text>
+            </View>
+          ))}
+          <Text style={[s.vetListLabel, { color: C.red, marginTop: 10 }]}>❌ Don't</Text>
+          {card.dontList.map((d, i) => (
+            <View key={i} style={s.vetListRow}>
+              <View style={[s.vetDot, { backgroundColor: C.red }]} />
+              <Text style={s.vetListText}>{d}</Text>
+            </View>
+          ))}
+          <TouchableOpacity
+            style={s.vetCallBtn}
+            onPress={() => {
+              const num = card.emergency.match(/[\d\-+]+/)?.[0];
+              if (num) Linking.openURL(`tel:${num.replace(/-/g, '')}`);
+            }}
+          >
+            <Ionicons name="call" size={14} color={C.bg} />
+            <Text style={s.vetCallBtnText}>{card.emergency}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -338,4 +457,23 @@ const s = StyleSheet.create({
   legendDot:   { width: 8, height: 8, borderRadius: 4 },
   legendText:  { fontSize: 11, color: C.text, fontWeight: '600' },
   mapFab:      { position: 'absolute', right: 16, width: 52, height: 52, borderRadius: 26, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
+
+  vetHeader:       { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginBottom: 16, backgroundColor: C.green + '12', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.green + '30' },
+  vetHeaderTitle:  { fontSize: 15, fontWeight: '700', color: C.text },
+  vetHeaderSub:    { fontSize: 12, color: C.muted, marginTop: 2 },
+
+  vetCard:       { backgroundColor: C.card, marginHorizontal: 16, marginBottom: 10, borderRadius: 16, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
+  vetCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  vetCardTitle:  { fontSize: 14, fontWeight: '700', color: C.text },
+  vetCardDist:   { fontSize: 11, color: C.muted, marginTop: 2 },
+  vetCardBody:   { borderTopWidth: 1, borderTopColor: C.border, paddingHorizontal: 14, paddingBottom: 14, paddingTop: 10 },
+  vetListLabel:  { fontSize: 12, fontWeight: '700', color: C.green, marginBottom: 8 },
+  vetListRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 },
+  vetDot:        { width: 6, height: 6, borderRadius: 3, marginTop: 5, flexShrink: 0 },
+  vetListText:   { flex: 1, fontSize: 12, color: C.muted, lineHeight: 18 },
+  vetCallBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: C.green, borderRadius: 10, paddingVertical: 10, marginTop: 10 },
+  vetCallBtnText:{ fontSize: 13, fontWeight: '700', color: C.bg },
+
+  vetDisclaimer:     { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginHorizontal: 16, marginTop: 8, backgroundColor: C.card2, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: C.border },
+  vetDisclaimerText: { flex: 1, fontSize: 11, color: C.muted, lineHeight: 17 },
 });

@@ -5,8 +5,36 @@ import {
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import useCatchStore from '../../store/useCatchStore';
+import useCatchStore   from '../../store/useCatchStore';
+import useSocialStore  from '../../store/useSocialStore';
 import { C } from '../../theme/colors';
+
+const CITY_COORDS = {
+  'Mumbai':      { lat: 19.0760, lng: 72.8777 },
+  'Delhi':       { lat: 28.6139, lng: 77.2090 },
+  'Bangalore':   { lat: 12.9716, lng: 77.5946 },
+  'Chennai':     { lat: 13.0827, lng: 80.2707 },
+  'Kolkata':     { lat: 22.5726, lng: 88.3639 },
+  'Hyderabad':   { lat: 17.3850, lng: 78.4867 },
+  'Pune':        { lat: 18.5204, lng: 73.8567 },
+  'Jaipur':      { lat: 26.9124, lng: 75.7873 },
+  'Nashik':      { lat: 20.0059, lng: 73.7910 },
+  'Uttarakhand': { lat: 30.0668, lng: 79.0193 },
+  'Bandipur':    { lat: 11.6688, lng: 76.6363 },
+  'Tadoba':      { lat: 20.2135, lng: 79.6760 },
+  'Aarey':       { lat: 19.1548, lng: 72.8671 },
+  'Adyar':       { lat: 13.0063, lng: 80.2574 },
+  'Bannerghatta':{ lat: 12.7960, lng: 77.5789 },
+  'Borivali':    { lat: 19.2307, lng: 72.8567 },
+};
+
+function cityToCoords(location) {
+  if (!location) return null;
+  for (const [city, coords] of Object.entries(CITY_COORDS)) {
+    if (location.toLowerCase().includes(city.toLowerCase())) return coords;
+  }
+  return null;
+}
 
 const { width } = Dimensions.get('window');
 
@@ -23,13 +51,21 @@ const FILTERS = ['All', 'Common', 'Uncommon', 'Rare', 'Legendary'];
 const INDIA = { latitude: 20.5937, longitude: 78.9629, latitudeDelta: 18, longitudeDelta: 18 };
 
 export default function MapScreen({ navigation }) {
-  const [filter, setFilter] = useState('All');
+  const [filter,  setFilter]  = useState('All');
+  const [mapMode, setMapMode] = useState('my');
   const insets   = useSafeAreaInsets();
   const mapRef   = useRef(null);
   const catches  = useCatchStore(s => s.catches);
+  const posts    = useSocialStore(s => s.posts);
 
   const pinCatches = catches.filter(c => c.lat != null && c.lng != null);
   const filtered   = filter === 'All' ? pinCatches : pinCatches.filter(c => c.rarity === filter);
+
+  const rarePosts  = posts
+    .filter(p => p.rarity === 'Rare' || p.rarity === 'Legendary')
+    .map(p => ({ ...p, coords: cityToCoords(p.location) }))
+    .filter(p => p.coords != null)
+    .slice(0, 30);
 
   const flyTo = (lat, lng) => {
     mapRef.current?.animateToRegion({ latitude: lat, longitude: lng, latitudeDelta: 0.05, longitudeDelta: 0.05 }, 600);
@@ -42,9 +78,20 @@ export default function MapScreen({ navigation }) {
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color={C.text} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Catch Map</Text>
-        <View style={s.countChip}>
-          <Text style={s.countText}>{pinCatches.length} pins</Text>
+        <Text style={s.headerTitle}>{mapMode === 'my' ? 'Catch Map' : 'Rare Sightings'}</Text>
+        <View style={s.modeToggle}>
+          <TouchableOpacity
+            style={[s.modeBtn, mapMode === 'my' && s.modeBtnActive]}
+            onPress={() => setMapMode('my')}
+          >
+            <Text style={[s.modeBtnText, mapMode === 'my' && s.modeBtnTextActive]}>Mine</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.modeBtn, mapMode === 'community' && s.modeBtnActive]}
+            onPress={() => setMapMode('community')}
+          >
+            <Text style={[s.modeBtnText, mapMode === 'community' && s.modeBtnTextActive]}>Rare</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -68,7 +115,7 @@ export default function MapScreen({ navigation }) {
           showsMyLocationButton={false}
           toolbarEnabled={false}
         >
-          {filtered.map((c, i) => {
+          {mapMode === 'my' && filtered.map((c, i) => {
             const color = RARITY_COLOR[c.rarity] ?? C.gray;
             return (
               <Marker
@@ -92,6 +139,30 @@ export default function MapScreen({ navigation }) {
               </Marker>
             );
           })}
+
+          {mapMode === 'community' && rarePosts.map((p, i) => {
+            const color = RARITY_COLOR[p.rarity] ?? C.gray;
+            return (
+              <Marker
+                key={p.id ?? i}
+                coordinate={{ latitude: p.coords.lat, longitude: p.coords.lng }}
+              >
+                <View style={[s.pin, { backgroundColor: color }]}>
+                  <Text style={s.pinEmoji}>{p.emoji}</Text>
+                </View>
+                <Callout tooltip>
+                  <View style={s.callout}>
+                    <Text style={s.calloutName}>{p.species}</Text>
+                    <Text style={[s.calloutRarity, { color }]}>{p.rarity}</Text>
+                    <Text style={s.calloutDate}>by {p.username} · {p.location}</Text>
+                    <Text style={s.calloutDate}>
+                      {new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </Text>
+                  </View>
+                </Callout>
+              </Marker>
+            );
+          })}
         </MapView>
 
         {/* Reset to India button */}
@@ -104,7 +175,7 @@ export default function MapScreen({ navigation }) {
       </View>
 
       {/* Empty state overlay */}
-      {pinCatches.length === 0 && (
+      {mapMode === 'my' && pinCatches.length === 0 && (
         <View style={s.emptyOverlay} pointerEvents="none">
           <View style={s.emptyCard}>
             <Text style={s.emptyEmoji}>📍</Text>
@@ -116,8 +187,8 @@ export default function MapScreen({ navigation }) {
         </View>
       )}
 
-      {/* Recent catches list at bottom */}
-      {pinCatches.length > 0 && (
+      {/* Pins list at bottom */}
+      {mapMode === 'my' && pinCatches.length > 0 && (
         <View style={[s.list, { paddingBottom: insets.bottom + 10 }]}>
           <Text style={s.listTitle}>Your Catches</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
@@ -137,6 +208,27 @@ export default function MapScreen({ navigation }) {
           </ScrollView>
         </View>
       )}
+
+      {mapMode === 'community' && rarePosts.length > 0 && (
+        <View style={[s.list, { paddingBottom: insets.bottom + 10 }]}>
+          <Text style={s.listTitle}>Rare Community Sightings ({rarePosts.length})</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+            {rarePosts.map((p, i) => {
+              const color = RARITY_COLOR[p.rarity] ?? C.gray;
+              return (
+                <TouchableOpacity
+                  key={p.id ?? i}
+                  style={[s.catchChip, { borderColor: color + '80' }]}
+                  onPress={() => flyTo(p.coords.lat, p.coords.lng)}
+                >
+                  <Text style={{ fontSize: 14 }}>{p.emoji}</Text>
+                  <Text style={s.catchChipName} numberOfLines={1}>{p.species}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 }
@@ -147,8 +239,11 @@ const s = StyleSheet.create({
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
   backBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: C.text },
-  countChip:   { backgroundColor: C.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5 },
-  countText:   { fontSize: 12, color: C.accent, fontWeight: 'bold' },
+  modeToggle:       { flexDirection: 'row', backgroundColor: C.card, borderRadius: 10, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
+  modeBtn:          { paddingHorizontal: 14, paddingVertical: 7 },
+  modeBtnActive:    { backgroundColor: C.primary },
+  modeBtnText:      { fontSize: 12, fontWeight: '700', color: C.muted },
+  modeBtnTextActive:{ color: C.accent },
 
   filterScroll: { maxHeight: 44, marginBottom: 8 },
   filterRow:    { paddingHorizontal: 16, gap: 8, alignItems: 'center' },

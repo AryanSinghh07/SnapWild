@@ -1,4 +1,16 @@
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+
+// Poaching protection (4.2.11) — keyword guard before any API call
+const POACH_PATTERNS = [
+  /\b(how\s+to|where\s+to|help\s+me|how\s+do\s+i)\s+(catch|trap|snare|hunt|kill|poach|capture)\b/i,
+  /\b(sell|buy|trade|price|export|smuggle)\b.{0,40}\b(animal|bird|snake|tiger|elephant|leopard|bear|peacock|deer|parrot|owl|mongoose|pangolin|turtle|rhino|wildlife)\b/i,
+  /\b(animal|bird|snake|tiger|elephant|leopard|bear|peacock|deer|parrot|owl|mongoose|pangolin|turtle|rhino)\b.{0,40}\b(sell|buy|trade|market|price|export)\b/i,
+  /\b(ivory|rhino\s+horn|tiger\s+skin|bear\s+bile|pangolin|bushmeat)\b/i,
+];
+
+function isPoachingQuery(q) {
+  return POACH_PATTERNS.some(p => p.test(q));
+}
 const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const PROMPT = `You are Vanya, an expert wildlife AI for the SnapWild app (India-focused).
@@ -49,6 +61,10 @@ const demoResult = () => ({
 });
 
 export async function askVanya(base64Image, question, langName = 'English') {
+  if (isPoachingQuery(question)) {
+    return "I protect wildlife, not help harm it. SnapWild is a conservation platform. To report illegal wildlife trade, call Wildlife Crime Control Bureau: 1800-11-2049.";
+  }
+
   const prompt = `You are Vanya, SnapWild's AI wildlife guide for India. The user asked: "${question}"
 
 Respond in ${langName} as a warm, knowledgeable wildlife guide. Keep your answer under 60 words — it will be spoken aloud. Plain text only, no markdown, no bullet points, no asterisks.

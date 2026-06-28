@@ -46,6 +46,7 @@ export default function VanyaScreen({ navigation }) {
   const [response,       setResponse]       = React.useState(null);
   const [loading,        setLoading]        = React.useState(false);
   const [lastBase64,     setLastBase64]     = React.useState(null);
+  const [showRescueBtn,  setShowRescueBtn]  = React.useState(false);
 
   // Watch mode — narrate every 7 seconds
   React.useEffect(() => {
@@ -67,6 +68,7 @@ export default function VanyaScreen({ navigation }) {
     loadingRef.current = true;
     setLoading(true);
     setResponse(null);
+    setShowRescueBtn(false);
 
     try {
       let base64 = null;
@@ -84,6 +86,9 @@ export default function VanyaScreen({ navigation }) {
 
       const answer = await askVanya(base64, text, language.name);
       setResponse(answer);
+
+      const INJURY_KW = ['injur', 'wound', 'hurt', 'bleed', 'rescue', 'distress', 'trapped', 'sick', 'limp'];
+      setShowRescueBtn(!watchMode && INJURY_KW.some(kw => answer.toLowerCase().includes(kw)));
 
       Speech.stop();
       Speech.speak(answer, { language: language.code, pitch: 1.05, rate: 0.90 });
@@ -260,6 +265,18 @@ export default function VanyaScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* ── Auto rescue report hint (4.2.9) ── */}
+        {showRescueBtn && (
+          <TouchableOpacity
+            style={s.rescueBtn}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('ReportInjured')}
+          >
+            <Ionicons name="alert-circle" size={18} color="#fff" />
+            <Text style={s.rescueBtnText}>This animal looks injured — File Rescue Report</Text>
+          </TouchableOpacity>
+        )}
+
         {/* ── Text input ── */}
         <View style={s.inputRow}>
           <TextInput
@@ -361,6 +378,9 @@ const s = StyleSheet.create({
 
   addCollBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.green, borderRadius: 14, paddingVertical: 14, marginHorizontal: 16, marginBottom: 12 },
   addCollText: { fontSize: 15, fontWeight: '700', color: C.bg },
+
+  rescueBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.red, borderRadius: 14, paddingVertical: 14, marginHorizontal: 16, marginBottom: 12 },
+  rescueBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 12 },
   input:    { flex: 1, backgroundColor: C.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, color: C.text, fontSize: 14, borderWidth: 1, borderColor: C.border },

@@ -2,10 +2,19 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import useCatchStore from '../../store/useCatchStore';
+import useCatchStore   from '../../store/useCatchStore';
+import useSocialStore  from '../../store/useSocialStore';
 import { C } from '../../theme/colors';
 
+function timeAgo(iso) {
+  const mins = (Date.now() - new Date(iso)) / 60000;
+  if (mins < 60) return `${Math.floor(Math.max(mins, 1))}m ago`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
+  return `${Math.floor(mins / 1440)}d ago`;
+}
+
 const RARITY_COLOR = { Common: C.gray, Uncommon: C.green, Rare: C.blue, Legendary: C.orange };
+
 
 function greeting(h) {
   if (h < 12) return 'Good morning';
@@ -48,6 +57,10 @@ export default function DiscoverScreen({ navigation }) {
   const prevGoal   = MISSIONS[MISSIONS.indexOf(mission) - 1]?.goal ?? 0;
   const progress   = Math.min((catchCount - prevGoal) / (mission.goal - prevGoal), 1);
   const recent     = catches.slice(0, 3);
+
+  const rarePosts = useSocialStore(s =>
+    s.posts.filter(p => p.rarity === 'Rare' || p.rarity === 'Legendary').slice(0, 6)
+  );
 
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = () => {
@@ -247,13 +260,47 @@ export default function DiscoverScreen({ navigation }) {
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
 
-      {/* Nearby */}
-      <SectionHeader title="Nearby Sightings" />
-      <View style={s.emptyCard}>
-        <Ionicons name="location-outline" size={38} color={C.muted} />
-        <Text style={s.emptyTitle}>No sightings nearby yet</Text>
-        <Text style={s.emptySub}>Be the first to catch a species in your area!</Text>
-      </View>
+      {/* Proximity rarity hints (4.9.6) */}
+      <SectionHeader title="Recently Spotted Near You" link="See all" onLink={() => navigation.navigate('Community')} />
+      {rarePosts.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+        >
+          {rarePosts.map(p => {
+            const col = RARITY_COLOR[p.rarity] ?? C.gray;
+            return (
+              <TouchableOpacity
+                key={p.id}
+                style={[s.hintCard, { borderColor: col + '50' }]}
+                onPress={() => navigation.navigate('SpeciesPage', {
+                  species:    p.species,
+                  emoji:      p.emoji,
+                  rarity:     p.rarity,
+                  scientific: p.scientific ?? '',
+                })}
+                activeOpacity={0.85}
+              >
+                <Text style={s.hintEmoji}>{p.emoji}</Text>
+                <Text style={s.hintName} numberOfLines={2}>{p.species}</Text>
+                <Text style={s.hintLoc} numberOfLines={1}>📍 {p.location}</Text>
+                <View style={[s.hintRarityPill, { backgroundColor: col + '20' }]}>
+                  <Text style={[s.hintRarityText, { color: col }]}>{p.rarity}</Text>
+                </View>
+                <Text style={s.hintTime}>{timeAgo(p.createdAt)}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      ) : (
+        <View style={s.emptyCard}>
+          <Ionicons name="location-outline" size={38} color={C.muted} />
+          <Text style={s.emptyTitle}>No sightings nearby yet</Text>
+          <Text style={s.emptySub}>Be the first to catch a species in your area!</Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -326,4 +373,12 @@ const s = StyleSheet.create({
   emptyCard:  { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 16, padding: 32, alignItems: 'center', gap: 8, marginBottom: 24, borderWidth: 1, borderColor: C.border },
   emptyTitle: { fontSize: 15, fontWeight: '600', color: C.text },
   emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center' },
+
+  hintCard:       { width: 130, backgroundColor: C.card, borderRadius: 16, borderWidth: 1.5, padding: 12, gap: 5 },
+  hintEmoji:      { fontSize: 30, marginBottom: 2 },
+  hintName:       { fontSize: 12, fontWeight: '700', color: C.text, lineHeight: 16 },
+  hintLoc:        { fontSize: 10, color: C.muted },
+  hintRarityPill: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start', marginTop: 2 },
+  hintRarityText: { fontSize: 10, fontWeight: '700' },
+  hintTime:       { fontSize: 10, color: C.muted },
 });
