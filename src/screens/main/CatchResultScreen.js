@@ -275,6 +275,16 @@ export default function CatchResultScreen({ navigation, route }) {
             <Ionicons name="camera" size={18} color={C.accent} />
             <Text style={s.retrySmallText}>Snap Another</Text>
           </TouchableOpacity>
+
+          {/* Report if injured */}
+          <TouchableOpacity
+            style={s.reportBtn}
+            onPress={() => navigation.navigate('ReportInjured')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="alert-circle-outline" size={16} color={C.red} />
+            <Text style={s.reportBtnText}>Animal looks injured? Report it</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -359,4 +369,6 @@ const s = StyleSheet.create({
   sharedText: { fontSize: 14, fontWeight: '700', color: C.blue },
   retrySmall: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: C.border },
   retrySmallText: { fontSize: 15, fontWeight: '600', color: C.accent },
+  reportBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
+  reportBtnText: { fontSize: 13, color: C.red, fontWeight: '600' },
 });

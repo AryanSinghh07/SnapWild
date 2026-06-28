@@ -232,6 +232,21 @@ export default function DiscoverScreen({ navigation }) {
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
 
+      {/* Rescue Alerts */}
+      <SectionHeader title="Rescue Alerts" link="See all" onLink={() => navigation.navigate('RescueAlerts')} />
+      <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('RescueAlerts')}>
+        <View style={s.leaderLeft}>
+          <View style={[s.leaderIconBox, { backgroundColor: C.red + '20' }]}>
+            <Ionicons name="alert-circle" size={22} color={C.red} />
+          </View>
+          <View>
+            <Text style={s.leaderTitle}>Animal Rescue Alerts</Text>
+            <Text style={s.leaderSub}>Report & respond to injured animals nearby</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+      </TouchableOpacity>
+
       {/* Nearby */}
       <SectionHeader title="Nearby Sightings" />
       <View style={s.emptyCard}>
