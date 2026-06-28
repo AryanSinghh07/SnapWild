@@ -124,13 +124,23 @@ export default function PostDetailScreen({ route, navigation }) {
           </View>
 
           {/* Species box */}
-          <View style={[s.speciesBox, { backgroundColor: rarityColor + '12', borderColor: rarityColor + '30' }]}>
+          <TouchableOpacity
+            style={[s.speciesBox, { backgroundColor: rarityColor + '12', borderColor: rarityColor + '30' }]}
+            onPress={() => navigation.navigate('SpeciesPage', {
+              species:    post.species,
+              emoji:      post.emoji,
+              rarity:     post.rarity,
+              scientific: post.scientific ?? '',
+            })}
+            activeOpacity={0.8}
+          >
             <Text style={s.speciesEmoji}>{post.emoji}</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.speciesName}>{post.species}</Text>
               {!!post.scientific && <Text style={s.speciesSci}>{post.scientific}</Text>}
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={14} color={C.muted} />
+          </TouchableOpacity>
 
           {/* Caption */}
           <Text style={s.caption}>{post.caption}</Text>

@@ -19,6 +19,15 @@ const LOCKED_ANIMALS = ['🦁', '🐯', '🐘', '🦏', '🐆', '🦌', '🦅', 
 const FILTERS = ['All', 'Common', 'Uncommon', 'Rare', 'Legendary'];
 
 export default function CollectionScreen({ navigation }) {
+  function openSpeciesPage(c) {
+    navigation.navigate('SpeciesPage', {
+      species:    c.name,
+      emoji:      c.emoji ?? '🐾',
+      rarity:     c.rarity,
+      scientific: c.scientific ?? '',
+    });
+  }
+
   const [filter, setFilter] = useState('All');
   const getUniqueSpecies = useCatchStore(s => s.getUniqueSpecies);
   const catches = useCatchStore(s => s.catches);
@@ -72,7 +81,12 @@ export default function CollectionScreen({ navigation }) {
             {filtered.map((c, i) => {
               const color = RARITY_COLOR[c.rarity] ?? C.gray;
               return (
-                <View key={c.id ?? i} style={[s.caughtCard, { borderColor: color + '60' }]}>
+                <TouchableOpacity
+                  key={c.id ?? i}
+                  style={[s.caughtCard, { borderColor: color + '60' }]}
+                  onPress={() => openSpeciesPage(c)}
+                  activeOpacity={0.85}
+                >
                   {c.photoUri
                     ? <Image source={{ uri: c.photoUri }} style={s.caughtImg} />
                     : <Text style={s.caughtEmoji}>🐾</Text>
@@ -80,7 +94,7 @@ export default function CollectionScreen({ navigation }) {
                   <View style={[s.caughtRarityBar, { backgroundColor: color }]} />
                   <Text style={s.caughtName} numberOfLines={2}>{c.name}</Text>
                   <Text style={[s.caughtXP, { color }]}>+{c.xp} XP</Text>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>

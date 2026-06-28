@@ -160,6 +160,12 @@ export default function CommunityFeedScreen({ navigation }) {
             onSpotted={() => toggleSpotted(post.id, user?.phone ?? 'me')}
             onBookmark={() => toggleBookmark(post.id)}
             onPress={() => navigation.navigate('PostDetail', { postId: post.id })}
+            onSpeciesPress={() => navigation.navigate('SpeciesPage', {
+              species:    post.species,
+              emoji:      post.emoji,
+              rarity:     post.rarity,
+              scientific: post.scientific ?? '',
+            })}
           />
         ))}
       </ScrollView>
@@ -176,7 +182,7 @@ export default function CommunityFeedScreen({ navigation }) {
   );
 }
 
-function PostCard({ post, spotted, bookmarked, onSpotted, onBookmark, onPress }) {
+function PostCard({ post, spotted, bookmarked, onSpotted, onBookmark, onPress, onSpeciesPress }) {
   const color = RARITY_COLOR[post.rarity] ?? C.gray;
   const aqiC  = aqiColor(post.aqi);
 
@@ -199,13 +205,18 @@ function PostCard({ post, spotted, bookmarked, onSpotted, onBookmark, onPress })
       </View>
 
       {/* Species box */}
-      <View style={[s.speciesBox, { backgroundColor: color + '12', borderColor: color + '30' }]}>
+      <TouchableOpacity
+        style={[s.speciesBox, { backgroundColor: color + '12', borderColor: color + '30' }]}
+        onPress={onSpeciesPress}
+        activeOpacity={0.8}
+      >
         <Text style={s.speciesBoxEmoji}>{post.emoji}</Text>
         <View style={{ flex: 1 }}>
           <Text style={s.speciesBoxName}>{post.species}</Text>
           <Text style={s.speciesBoxSci}>{post.scientific}</Text>
         </View>
-      </View>
+        <Ionicons name="chevron-forward" size={14} color={C.muted} />
+      </TouchableOpacity>
 
       {/* Caption */}
       <Text style={s.caption}>{post.caption}</Text>
