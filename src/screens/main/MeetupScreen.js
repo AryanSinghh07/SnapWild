@@ -5,7 +5,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import usePetStore, { SPECIES_EMOJI, getNearestVet } from '../../store/usePetStore';
+import usePetStore,   { SPECIES_EMOJI, getNearestVet } from '../../store/usePetStore';
+import useSafetyStore from '../../store/useSafetyStore';
 import { C } from '../../theme/colors';
 
 const MEETUP_TIPS = [
@@ -33,10 +34,12 @@ export default function MeetupScreen({ route, navigation }) {
   const { meetupId } = route.params;
   const insets = useSafeAreaInsets();
 
-  const activeMeetups = usePetStore(s => s.activeMeetups);
-  const meetup        = activeMeetups.find(m => m.id === meetupId);
-  const timer         = useTimer(meetup?.startedAt ?? new Date().toISOString());
-  const vet           = getNearestVet();
+  const activeMeetups      = usePetStore(s => s.activeMeetups);
+  const meetup             = activeMeetups.find(m => m.id === meetupId);
+  const timer              = useTimer(meetup?.startedAt ?? new Date().toISOString());
+  const vet                = getNearestVet();
+  const emergencyContact   = useSafetyStore(s => s.emergencyContact);
+  const logSOS             = useSafetyStore(s => s.logSOS);
 
   // Auto safety check at 30 seconds (demo stand-in for 30 minutes)
   React.useEffect(() => {
@@ -61,6 +64,28 @@ export default function MeetupScreen({ route, navigation }) {
           <Text style={{ color: C.accent }}>Go back</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
+
+  function handleSOS() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    logSOS('Triggered from MeetupScreen');
+    const buttons = [
+      { text: 'Cancel', style: 'cancel' },
+      { text: '📞 Call 112', onPress: () => Linking.openURL('tel:112') },
+    ];
+    if (emergencyContact) {
+      buttons.splice(1, 0, {
+        text: `📞 Call ${emergencyContact.name}`,
+        onPress: () => Linking.openURL(`tel:${emergencyContact.phone}`),
+      });
+    }
+    Alert.alert(
+      '🚨 SOS — Need Help?',
+      emergencyContact
+        ? `Calling your emergency contact:\n${emergencyContact.name}: ${emergencyContact.phone}\n\nOr call emergency services.`
+        : 'No emergency contact set. Calling emergency services.',
+      buttons
     );
   }
 
@@ -106,6 +131,16 @@ export default function MeetupScreen({ route, navigation }) {
         <Text style={s.headerTitle}>Active Meetup</Text>
         <View style={{ width: 36 }} />
       </View>
+
+      {/* Floating SOS button — always visible */}
+      <TouchableOpacity
+        style={[s.sosBtn, { top: insets.top + 8 }]}
+        onPress={handleSOS}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="alert-circle" size={16} color="#fff" />
+        <Text style={s.sosBtnText}>SOS</Text>
+      </TouchableOpacity>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
 
@@ -244,4 +279,7 @@ const s = StyleSheet.create({
 
   endBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.accent, borderRadius: 14, paddingVertical: 16 },
   endBtnText: { fontSize: 15, fontWeight: '700', color: C.bg },
+
+  sosBtn:     { position: 'absolute', right: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.red, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, zIndex: 10, elevation: 10 },
+  sosBtnText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 1 },
 });

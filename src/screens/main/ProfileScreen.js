@@ -263,6 +263,34 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={18} color={C.muted} />
         </TouchableOpacity>
 
+        {/* Account & Safety */}
+        <SectionHeader title="Account & Safety" />
+        <TouchableOpacity style={s.socialCard} onPress={() => navigation.navigate('SafetySettings')} activeOpacity={0.85}>
+          <View style={s.socialLeft}>
+            <View style={[s.socialIcon, { backgroundColor: C.red + '20' }]}>
+              <Ionicons name="shield-checkmark" size={20} color={C.red} />
+            </View>
+            <View>
+              <Text style={s.socialTitle}>Safety Settings</Text>
+              <Text style={s.socialSub}>Emergency contact · SOS · Minor protection</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[s.socialCard, { marginTop: 8 }]} onPress={() => navigation.navigate('DataPrivacy')} activeOpacity={0.85}>
+          <View style={s.socialLeft}>
+            <View style={[s.socialIcon, { backgroundColor: C.blue + '20' }]}>
+              <Ionicons name="lock-closed" size={20} color={C.blue} />
+            </View>
+            <View>
+              <Text style={s.socialTitle}>Data & Privacy</Text>
+              <Text style={s.socialSub}>DPDP Act · Delete account · Export data</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        </TouchableOpacity>
+
         {/* Sign out */}
         <TouchableOpacity style={s.signOutBtn} onPress={handleLogout} activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={18} color={C.red} />

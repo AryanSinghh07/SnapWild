@@ -1,10 +1,12 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import ProfileScreen       from '../screens/main/ProfileScreen';
-import HealthScreen        from '../screens/main/HealthScreen';
-import FriendsScreen       from '../screens/main/FriendsScreen';
-import ConversationsScreen from '../screens/main/ConversationsScreen';
-import ChatScreen          from '../screens/main/ChatScreen';
+import ProfileScreen          from '../screens/main/ProfileScreen';
+import HealthScreen           from '../screens/main/HealthScreen';
+import FriendsScreen          from '../screens/main/FriendsScreen';
+import ConversationsScreen    from '../screens/main/ConversationsScreen';
+import ChatScreen             from '../screens/main/ChatScreen';
+import SafetySettingsScreen   from '../screens/main/SafetySettingsScreen';
+import DataPrivacyScreen      from '../screens/main/DataPrivacyScreen';
 import { C } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
@@ -24,10 +26,12 @@ export default function ProfileStack() {
           headerShadowVisible: false,
         }}
       />
-      <Stack.Screen name="Health"        component={HealthScreen}        options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="Friends"       component={FriendsScreen}       options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="Conversations" component={ConversationsScreen} options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="Chat"          component={ChatScreen}          options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="Health"          component={HealthScreen}          options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="Friends"         component={FriendsScreen}         options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="Conversations"   component={ConversationsScreen}   options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="Chat"            component={ChatScreen}            options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="SafetySettings"  component={SafetySettingsScreen}  options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="DataPrivacy"     component={DataPrivacyScreen}     options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack.Navigator>
   );
 }
