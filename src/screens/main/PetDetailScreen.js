@@ -259,6 +259,18 @@ export default function PetDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
+        {/* View full profile */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
+          <TouchableOpacity
+            style={s.profileBtn}
+            onPress={() => navigation.navigate('PetProfile', { pet })}
+          >
+            <Ionicons name="person-circle-outline" size={16} color={C.accent} />
+            <Text style={s.profileBtnText}>View {pet.name}'s Full Profile</Text>
+            <Ionicons name="chevron-forward" size={14} color={C.accent} />
+          </TouchableOpacity>
+        </View>
+
         {/* CTA */}
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
           {myPets.length === 0 ? (
@@ -359,6 +371,9 @@ const s = StyleSheet.create({
 
   safetyCard: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 16, backgroundColor: C.green + '15', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: C.green + '40' },
   safetyText: { flex: 1, fontSize: 12, color: C.muted, lineHeight: 18 },
+
+  profileBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.card, borderRadius: 12, paddingVertical: 12, borderWidth: 1, borderColor: C.accent + '50' },
+  profileBtnText: { fontSize: 13, fontWeight: '600', color: C.accent, flex: 1, textAlign: 'center' },
 
   ctaBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.accent, borderRadius: 14, paddingVertical: 16 },
   ctaBtnDisabled:{ backgroundColor: C.card, borderWidth: 1, borderColor: C.border },

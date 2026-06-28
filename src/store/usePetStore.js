@@ -111,6 +111,46 @@ export const NEARBY_PETS = [
   },
 ];
 
+export function getBreedGroups(extraPets = []) {
+  const all = [...NEARBY_PETS, ...extraPets];
+  const map = {};
+  all.forEach(pet => {
+    const key = `${pet.species}::${pet.breed}`;
+    if (!map[key]) {
+      const city = pet.owner?.city ?? 'India';
+      map[key] = {
+        id:      key,
+        species: pet.species,
+        breed:   pet.breed,
+        name:    breedGroupName(pet.breed, pet.species, city),
+        city,
+        members: [],
+      };
+    }
+    map[key].members.push(pet);
+  });
+  return Object.values(map).sort((a, b) => b.members.length - a.members.length);
+}
+
+function breedGroupName(breed, species, city) {
+  switch (species) {
+    case 'Dog':    return `${breed}s of ${city}`;
+    case 'Cat':    return `${city} ${breed} Parents`;
+    case 'Bird':   return `${breed} Bird Club`;
+    case 'Rabbit': return `${breed} Rabbit Club`;
+    default:       return `${breed} Community`;
+  }
+}
+
+export function petStats(pet) {
+  const seed = pet.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return {
+    followers: 10 + (seed % 80),
+    meetups:   1  + (seed % 8),
+    friends:   1  + (seed % 5),
+  };
+}
+
 const INIT_INCOMING = [
   { id: 'inc-1', theirPet: NEARBY_PETS[0], sentAt: ts(2)  },
   { id: 'inc-2', theirPet: NEARBY_PETS[2], sentAt: ts(20) },
@@ -125,6 +165,7 @@ export default create(
       petFriendships:   [],
       activeMeetups:    [],
       completedMeetups: [],
+      follows:          [],
 
       addPet: (pet) => set(s => ({
         myPets: [...s.myPets, {
@@ -207,6 +248,16 @@ export default create(
       declineIncoming: (requestId) => set(s => ({
         incomingRequests: s.incomingRequests.filter(r => r.id !== requestId),
       })),
+
+      followPet: (petId) => set(s => ({
+        follows: s.follows.includes(petId) ? s.follows : [...s.follows, petId],
+      })),
+
+      unfollowPet: (petId) => set(s => ({
+        follows: s.follows.filter(id => id !== petId),
+      })),
+
+      isFollowing: (petId) => get().follows.includes(petId),
 
       hasSentRequest: (myPetId, theirPetId) =>
         get().outgoingRequests.some(

@@ -9,6 +9,8 @@ import AddPetScreen         from '../screens/main/AddPetScreen';
 import PetDetailScreen      from '../screens/main/PetDetailScreen';
 import MeetupScreen         from '../screens/main/MeetupScreen';
 import RateMeetupScreen     from '../screens/main/RateMeetupScreen';
+import BreedGroupsScreen    from '../screens/main/BreedGroupsScreen';
+import PetProfileScreen     from '../screens/main/PetProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +26,8 @@ export default function DiscoverStack() {
       <Stack.Screen name="PetDetail"     component={PetDetailScreen}     options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="Meetup"        component={MeetupScreen}        options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
       <Stack.Screen name="RateMeetup"    component={RateMeetupScreen}    options={{ animation: 'slide_from_right', gestureEnabled: false }} />
+      <Stack.Screen name="BreedGroups"   component={BreedGroupsScreen}   options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="PetProfile"    component={PetProfileScreen}    options={{ animation: 'slide_from_right' }} />
     </Stack.Navigator>
   );
 }

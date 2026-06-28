@@ -96,6 +96,24 @@ export default function PetPlaydatesScreen({ navigation }) {
         {/* ── NEARBY ── */}
         {tab === 'nearby' && (
           <View>
+            {/* Breed communities shortcut */}
+            <TouchableOpacity
+              style={s.breedGroupsBtn}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('BreedGroups')}
+            >
+              <View style={s.breedGroupsLeft}>
+                <View style={s.breedGroupsIcon}>
+                  <Text style={{ fontSize: 20 }}>🐾</Text>
+                </View>
+                <View>
+                  <Text style={s.breedGroupsTitle}>Breed Communities</Text>
+                  <Text style={s.breedGroupsSub}>Find groups by breed across India</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.muted} />
+            </TouchableOpacity>
+
             <View style={s.radiusRow}>
               <Ionicons name="location-outline" size={13} color={C.muted} />
               <Text style={s.radiusLabel}>Within:</Text>
@@ -310,6 +328,12 @@ const s = StyleSheet.create({
   tabBtnActive:   { backgroundColor: C.primary },
   tabText:        { fontSize: 12, color: C.muted, fontWeight: '600' },
   tabTextActive:  { color: C.accent },
+
+  breedGroupsBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border },
+  breedGroupsLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  breedGroupsIcon:  { width: 42, height: 42, borderRadius: 21, backgroundColor: C.primary + '50', alignItems: 'center', justifyContent: 'center' },
+  breedGroupsTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  breedGroupsSub:   { fontSize: 11, color: C.muted, marginTop: 2 },
 
   radiusRow:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 16 },
   radiusLabel:    { fontSize: 13, color: C.muted, marginRight: 4 },
