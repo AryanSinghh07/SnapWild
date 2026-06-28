@@ -159,19 +159,29 @@ export default function CommunityFeedScreen({ navigation }) {
             bookmarked={bookmarks.includes(post.id)}
             onSpotted={() => toggleSpotted(post.id, user?.phone ?? 'me')}
             onBookmark={() => toggleBookmark(post.id)}
+            onPress={() => navigation.navigate('PostDetail', { postId: post.id })}
           />
         ))}
       </ScrollView>
+
+      {/* Create Post FAB */}
+      <TouchableOpacity
+        style={s.fab}
+        onPress={() => navigation.navigate('CreatePost')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="add" size={26} color={C.bg} />
+      </TouchableOpacity>
     </View>
   );
 }
 
-function PostCard({ post, spotted, bookmarked, onSpotted, onBookmark }) {
+function PostCard({ post, spotted, bookmarked, onSpotted, onBookmark, onPress }) {
   const color = RARITY_COLOR[post.rarity] ?? C.gray;
   const aqiC  = aqiColor(post.aqi);
 
   return (
-    <View style={s.card}>
+    <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.92}>
       {/* Author row */}
       <View style={s.cardTop}>
         <View style={[s.cardAvatar, { backgroundColor: C.primary }]}>
@@ -245,7 +255,7 @@ function PostCard({ post, spotted, bookmarked, onSpotted, onBookmark }) {
           />
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -335,4 +345,11 @@ const s = StyleSheet.create({
   actionCount: { fontSize: 13, fontWeight: '600', color: C.muted },
   actionLabel: { fontSize: 13, color: C.muted },
   actionActive: { color: C.accent },
+
+  fab: {
+    position: 'absolute', bottom: 90, right: 20,
+    width: 54, height: 54, borderRadius: 27,
+    backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center',
+    elevation: 6,
+  },
 });

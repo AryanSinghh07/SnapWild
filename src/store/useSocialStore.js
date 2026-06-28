@@ -71,15 +71,58 @@ const SEED = [
   },
 ];
 
+const SEED_COMMENTS = {
+  mp2: [
+    { id: 'c1', author: 'ArjunWild',    text: 'Incredible sighting! How close were you? 🐯',         createdAt: t(4.5) },
+    { id: 'c2', author: 'PriyaNature',  text: 'Jim Corbett never disappoints. Lucky you! 🌿',         createdAt: t(4.2) },
+    { id: 'c3', author: 'SnehaWings',   text: 'This is legendary! How long did it stay in view?',     createdAt: t(3.8) },
+    { id: 'c4', author: 'LeoWildMH',    text: 'The conservation work there is paying off 🙏',         createdAt: t(3.2) },
+  ],
+  mp3: [
+    { id: 'c5', author: 'NayanTrek',    text: 'Did you turn off your engine? Elephants respond well to silence', createdAt: t(7.5) },
+    { id: 'c6', author: 'RaviForest',   text: 'Bandipur corridor is so important for their migration', createdAt: t(7.1) },
+  ],
+  mp5: [
+    { id: 'c7', author: 'BirdQueenCHN', text: 'King Cobras are so misunderstood. Vital for ecosystem!', createdAt: t(17) },
+    { id: 'c8', author: 'ArjunWild',    text: 'Please report this location to Forest Dept for protection', createdAt: t(16) },
+    { id: 'c9', author: 'TigerEyeDelhi',text: 'Stay safe everyone — keep at least 10 metres distance',  createdAt: t(15) },
+  ],
+  mp7: [
+    { id: 'c10', author: 'PriyaNature', text: 'Sloth bears with cubs are extra protective. Smart move!', createdAt: t(29) },
+    { id: 'c11', author: 'SnehaWings',  text: 'Tadoba is the best for sloth bear sightings 🐻',         createdAt: t(28) },
+  ],
+};
+
 const useSocialStore = create(
   persist(
     (set, get) => ({
-      posts:     SEED,
-      mySpotted: {},   // { [postId]: true }
-      bookmarks: [],   // [postId]
+      posts:        SEED,
+      mySpotted:    {},
+      bookmarks:    [],
+      postComments: SEED_COMMENTS,
 
       addPost: (post) =>
         set(s => ({ posts: [post, ...s.posts] })),
+
+      addComment: (postId, text, username) => {
+        const comment = {
+          id:        `cmt_${Date.now()}`,
+          author:    username ?? 'Explorer',
+          text:      text.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        set(s => ({
+          postComments: {
+            ...s.postComments,
+            [postId]: [comment, ...(s.postComments[postId] ?? [])],
+          },
+          posts: s.posts.map(p =>
+            p.id === postId ? { ...p, comments: p.comments + 1 } : p
+          ),
+        }));
+      },
+
+      getComments: (postId) => get().postComments[postId] ?? [],
 
       toggleSpotted: (postId, myUserId) =>
         set(s => {
