@@ -2,16 +2,8 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import useCatchStore   from '../../store/useCatchStore';
-import useSocialStore  from '../../store/useSocialStore';
+import useCatchStore from '../../store/useCatchStore';
 import { C } from '../../theme/colors';
-
-function timeAgo(iso) {
-  const mins = (Date.now() - new Date(iso)) / 60000;
-  if (mins < 60) return `${Math.floor(Math.max(mins, 1))}m ago`;
-  if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
-  return `${Math.floor(mins / 1440)}d ago`;
-}
 
 const RARITY_COLOR = { Common: C.gray, Uncommon: C.green, Rare: C.blue, Legendary: C.orange };
 
@@ -44,27 +36,19 @@ function currentMission(catchCount) {
 }
 
 export default function DiscoverScreen({ navigation }) {
-  const { user }       = useAuth();
-  const catches        = useCatchStore(s => s.catches);
-  const getTotalXP     = useCatchStore(s => s.getTotalXP);
-  const now            = useClock();
-  const timeStr        = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const dayStr         = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  const { user }   = useAuth();
+  const catches    = useCatchStore(s => s.catches);
+  const now        = useClock();
+  const timeStr    = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dayStr     = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const totalXP    = getTotalXP();
+  const totalXP    = catches.reduce((sum, c) => sum + (c.xp ?? 0), 0);
   const catchCount = catches.length;
   const mission    = currentMission(catchCount);
   const prevGoal   = MISSIONS[MISSIONS.indexOf(mission) - 1]?.goal ?? 0;
   const progress   = Math.min((catchCount - prevGoal) / (mission.goal - prevGoal), 1);
   const recent     = catches.slice(0, 3);
-
-  // Read posts once on mount without subscribing — avoids useSyncExternalStore
-  // re-render loop caused by AsyncStorage hydration changing array references
-  const [rarePosts] = React.useState(() =>
-    useSocialStore.getState().posts
-      .filter(p => p.rarity === 'Rare' || p.rarity === 'Legendary')
-      .slice(0, 6)
-  );
+  const rareCatches = catches.filter(c => c.rarity === 'Rare' || c.rarity === 'Legendary').slice(0, 6);
 
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = () => {
@@ -264,36 +248,38 @@ export default function DiscoverScreen({ navigation }) {
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
 
-      {/* Proximity rarity hints (4.9.6) */}
-      <SectionHeader title="Recently Spotted Near You" link="See all" onLink={() => navigation.navigate('Community')} />
-      {rarePosts.length > 0 ? (
+      {/* Rare & Legendary catches (4.9.6) */}
+      <SectionHeader title="Your Rare Catches" link="See all" onLink={() => navigation.getParent()?.navigate('Collection')} />
+      {rareCatches.length > 0 ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={{ marginBottom: 24 }}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
         >
-          {rarePosts.map(p => {
-            const col = RARITY_COLOR[p.rarity] ?? C.gray;
+          {rareCatches.map(c => {
+            const col = RARITY_COLOR[c.rarity] ?? C.gray;
             return (
               <TouchableOpacity
-                key={p.id}
+                key={c.id}
                 style={[s.hintCard, { borderColor: col + '50' }]}
                 onPress={() => navigation.navigate('SpeciesPage', {
-                  species:    p.species,
-                  emoji:      p.emoji,
-                  rarity:     p.rarity,
-                  scientific: p.scientific ?? '',
+                  species:    c.name,
+                  emoji:      c.emoji ?? '🐾',
+                  rarity:     c.rarity,
+                  scientific: c.scientific ?? '',
                 })}
                 activeOpacity={0.85}
               >
-                <Text style={s.hintEmoji}>{p.emoji}</Text>
-                <Text style={s.hintName} numberOfLines={2}>{p.species}</Text>
-                <Text style={s.hintLoc} numberOfLines={1}>📍 {p.location}</Text>
+                <Text style={s.hintEmoji}>{c.emoji ?? '🐾'}</Text>
+                <Text style={s.hintName} numberOfLines={2}>{c.name}</Text>
+                <Text style={s.hintLoc} numberOfLines={1}>
+                  {new Date(c.caughtAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                </Text>
                 <View style={[s.hintRarityPill, { backgroundColor: col + '20' }]}>
-                  <Text style={[s.hintRarityText, { color: col }]}>{p.rarity}</Text>
+                  <Text style={[s.hintRarityText, { color: col }]}>{c.rarity}</Text>
                 </View>
-                <Text style={s.hintTime}>{timeAgo(p.createdAt)}</Text>
+                <Text style={s.hintTime}>+{c.xp} XP</Text>
               </TouchableOpacity>
             );
           })}
@@ -301,8 +287,8 @@ export default function DiscoverScreen({ navigation }) {
       ) : (
         <View style={s.emptyCard}>
           <Ionicons name="location-outline" size={38} color={C.muted} />
-          <Text style={s.emptyTitle}>No sightings nearby yet</Text>
-          <Text style={s.emptySub}>Be the first to catch a species in your area!</Text>
+          <Text style={s.emptyTitle}>No rare catches yet</Text>
+          <Text style={s.emptySub}>Snap Rare or Legendary animals to see them here!</Text>
         </View>
       )}
     </ScrollView>
