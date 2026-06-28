@@ -24,6 +24,11 @@ export default function SnapScreen({ navigation }) {
         <Text style={s.btnPrimaryText}>Catch Now</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={s.btnSecondary} activeOpacity={0.85} onPress={() => navigation.navigate('Vanya')}>
+        <Text style={s.btnSecondaryEmoji}>🦁</Text>
+        <Text style={s.btnSecondaryText}>Talk to Vanya</Text>
+      </TouchableOpacity>
+
     </View>
   );
 }
@@ -50,5 +55,13 @@ const s = StyleSheet.create({
     backgroundColor: C.accent, borderRadius: 16, paddingVertical: 18, gap: 10,
   },
   btnPrimaryText: { fontSize: 17, fontWeight: 'bold', color: C.bg },
+
+  btnSecondary: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.card, borderRadius: 16, paddingVertical: 15, gap: 10,
+    borderWidth: 1, borderColor: C.border,
+  },
+  btnSecondaryEmoji: { fontSize: 20 },
+  btnSecondaryText:  { fontSize: 16, fontWeight: '700', color: C.text },
 
 });

@@ -48,6 +48,43 @@ const demoResult = () => ({
   isDemo: true,
 });
 
+export async function askVanya(base64Image, question, langName = 'English') {
+  const prompt = `You are Vanya, SnapWild's AI wildlife guide for India. The user asked: "${question}"
+
+Respond in ${langName} as a warm, knowledgeable wildlife guide. Keep your answer under 60 words — it will be spoken aloud. Plain text only, no markdown, no bullet points, no asterisks.
+
+If you see an animal: name it, describe what it's doing, share one fascinating India-specific fact.
+If dangerous: warn immediately and clearly.
+If no animal is visible: say so briefly and suggest what to look for.
+If the question is general wildlife: answer helpfully and engagingly.`;
+
+  if (!API_KEY) {
+    return question.toLowerCase().includes('danger')
+      ? 'Always keep a safe distance from wild animals, especially snakes and large mammals.'
+      : "Point your camera at any animal and I'll identify it and tell you all about it!";
+  }
+
+  try {
+    const parts = [{ text: prompt }];
+    if (base64Image) parts.push({ inline_data: { mime_type: 'image/jpeg', data: base64Image } });
+
+    const res = await fetch(`${API_URL}?key=${API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
+      }),
+    });
+    if (!res.ok) return "I'm having trouble connecting right now. Please try again!";
+    const json = await res.json();
+    return (json.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
+      || "I couldn't process that. Try again!";
+  } catch {
+    return "I'm having trouble right now. Try again in a moment!";
+  }
+}
+
 export async function getCompatibility(pet1, pet2) {
   if (!API_KEY) return _fallbackCompat(pet1, pet2);
 
