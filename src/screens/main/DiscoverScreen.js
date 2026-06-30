@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import useCatchStore from '../../store/useCatchStore';
+import useCatchStore  from '../../store/useCatchStore';
+import useSocialStore  from '../../store/useSocialStore';
 import { C } from '../../theme/colors';
 
 const RARITY_COLOR = { Common: C.gray, Uncommon: C.green, Rare: C.blue, Legendary: C.orange };
@@ -44,6 +45,25 @@ export default function DiscoverScreen({ navigation }) {
 
   const totalXP    = catches.reduce((sum, c) => sum + (c.xp ?? 0), 0);
   const catchCount = catches.length;
+
+  const [rarityHints, setRarityHints] = React.useState([]);
+  React.useEffect(() => {
+    const posts  = useSocialStore.getState().posts;
+    const week   = Date.now() - 7 * 24 * 3600_000;
+    const recent = posts.filter(p => new Date(p.createdAt) > week);
+    const grouped = {};
+    recent.forEach(p => {
+      if (!p.species) return;
+      if (!grouped[p.species]) grouped[p.species] = { count: 0, emoji: p.emoji ?? '🐾', rarity: p.rarity, city: p.city ?? p.location };
+      grouped[p.species].count++;
+    });
+    const hints = Object.entries(grouped)
+      .map(([species, d]) => ({ species, ...d }))
+      .filter(h => h.rarity === 'Rare' || h.rarity === 'Legendary' || h.count >= 2)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+    setRarityHints(hints);
+  }, []);
   const mission    = currentMission(catchCount);
   const prevGoal   = MISSIONS[MISSIONS.indexOf(mission) - 1]?.goal ?? 0;
   const progress   = Math.min((catchCount - prevGoal) / (mission.goal - prevGoal), 1);
@@ -277,6 +297,39 @@ export default function DiscoverScreen({ navigation }) {
         </View>
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
+
+      {/* Proximity Rarity Hints (4.9.6) */}
+      {rarityHints.length > 0 && (
+        <>
+          <SectionHeader title="Spotted Near You" link="See map" onLink={() => navigation.getParent()?.navigate('Collection', { screen: 'CatchMap' })} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 24 }}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+          >
+            {rarityHints.map(h => {
+              const col = RARITY_COLOR[h.rarity] ?? C.gray;
+              return (
+                <TouchableOpacity
+                  key={h.species}
+                  style={[s.hintCard, { borderColor: col + '50' }]}
+                  onPress={() => navigation.navigate('SpeciesPage', { species: h.species, emoji: h.emoji, rarity: h.rarity, scientific: '' })}
+                  activeOpacity={0.85}
+                >
+                  <Text style={s.hintEmoji}>{h.emoji}</Text>
+                  <Text style={s.hintName} numberOfLines={2}>{h.species}</Text>
+                  <Text style={s.hintLoc} numberOfLines={1}>{h.city}</Text>
+                  <View style={[s.hintRarityPill, { backgroundColor: col + '20' }]}>
+                    <Text style={[s.hintRarityText, { color: col }]}>{h.rarity}</Text>
+                  </View>
+                  <Text style={s.hintTime}>{h.count} spotted</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </>
+      )}
 
       {/* Rare & Legendary catches (4.9.6) */}
       <SectionHeader title="Your Rare Catches" link="See all" onLink={() => navigation.getParent()?.navigate('Collection')} />

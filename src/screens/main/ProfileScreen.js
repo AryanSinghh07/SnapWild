@@ -5,9 +5,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import useCatchStore from '../../store/useCatchStore';
-import useFriendStore from '../../store/useFriendStore';
-import usePetStore    from '../../store/usePetStore';
+import useCatchStore   from '../../store/useCatchStore';
+import useFriendStore  from '../../store/useFriendStore';
+import usePetStore     from '../../store/usePetStore';
+import useRescueStore  from '../../store/useRescueStore';
 import { C } from '../../theme/colors';
 
 const XP_TRACKS = [
@@ -24,7 +25,7 @@ const BIRD_WORDS = [
   'drongo','babbler','thrush','shrike','bird',
 ];
 
-function computeBadges(catches) {
+function computeBadges(catches, guardianActions = 0) {
   const birdCount   = catches.filter(c => BIRD_WORDS.some(b => c.name?.toLowerCase().includes(b))).length;
   const uniqueCount = new Set(catches.map(c => c.name)).size;
   const hasRare     = catches.some(c => c.rarity === 'Rare' || c.rarity === 'Legendary');
@@ -33,14 +34,14 @@ function computeBadges(catches) {
   const hasGPS      = catches.filter(c => c.lat != null).length >= 3;
 
   return [
-    { name: 'First Catch',   icon: '🎯', desc: 'Make your first catch',     locked: catches.length < 1 },
-    { name: 'Birder',        icon: '🦜', desc: 'Catch 3 bird species',       locked: birdCount < 3     },
-    { name: 'Rare Hunter',   icon: '💎', desc: 'Catch a Rare or Legendary',  locked: !hasRare          },
-    { name: 'Collector',     icon: '📚', desc: 'Catch 5 unique species',     locked: uniqueCount < 5   },
-    { name: 'Night Shift',   icon: '🦉', desc: 'Catch after 8pm or before 6am', locked: !hasNight     },
-    { name: 'On Location',   icon: '📍', desc: 'Catch 3 animals with GPS',   locked: !hasGPS           },
-    { name: 'Legend',        icon: '⭐', desc: 'Catch a Legendary animal',    locked: !hasLegend        },
-    { name: 'Guardian',      icon: '🛡️', desc: 'File 5 rescue reports',     locked: true              },
+    { name: 'First Catch',   icon: '🎯', desc: 'Make your first catch',          locked: catches.length < 1      },
+    { name: 'Birder',        icon: '🦜', desc: 'Catch 3 bird species',            locked: birdCount < 3           },
+    { name: 'Rare Hunter',   icon: '💎', desc: 'Catch a Rare or Legendary',       locked: !hasRare                },
+    { name: 'Collector',     icon: '📚', desc: 'Catch 5 unique species',          locked: uniqueCount < 5         },
+    { name: 'Night Shift',   icon: '🦉', desc: 'Catch after 8pm or before 6am',  locked: !hasNight               },
+    { name: 'On Location',   icon: '📍', desc: 'Catch 3 animals with GPS',        locked: !hasGPS                 },
+    { name: 'Legend',        icon: '⭐', desc: 'Catch a Legendary animal',         locked: !hasLegend              },
+    { name: 'Guardian',      icon: '🛡️', desc: 'File or respond to 5 rescues',   locked: guardianActions < 5     },
   ];
 }
 
@@ -53,13 +54,17 @@ export default function ProfileScreen({ navigation }) {
   const totalXP        = getTotalXP();
   const catchCount     = catches.length;
 
-  const myPetCount     = usePetStore(s => s.myPets.length);
-  const friendCount    = useFriendStore(s => s.friends.length);
-  const requestCount   = useFriendStore(s => s.requests.length);
-  const getTotalUnread = useFriendStore(s => s.getTotalUnread);
-  const totalUnread    = getTotalUnread();
+  const myPetCount       = usePetStore(s => s.myPets.length);
+  const friendCount      = useFriendStore(s => s.friends.length);
+  const requestCount     = useFriendStore(s => s.requests.length);
+  const getTotalUnread   = useFriendStore(s => s.getTotalUnread);
+  const totalUnread      = getTotalUnread();
+  const myResponses      = useRescueStore(s => s.myResponses);
+  const rescueReports    = useRescueStore(s => s.reports);
+  const myReportCount    = rescueReports.filter(r => r.reportedBy === 'You').length;
+  const guardianActions  = myResponses.length + myReportCount;
 
-  const badges = computeBadges(catches);
+  const badges = computeBadges(catches, guardianActions);
 
   // Edit modal state
   const [editVisible, setEditVisible] = useState(false);

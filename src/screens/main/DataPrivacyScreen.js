@@ -229,6 +229,49 @@ export default function DataPrivacyScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* Moderation Status — 3-strike system */}
+        <View style={s.sectionCard}>
+          <View style={s.sectionHeader}>
+            <Ionicons name="shield-half-outline" size={18} color={C.blue} />
+            <Text style={s.sectionTitle}>Moderation Status</Text>
+          </View>
+
+          <View style={ms.statusRow}>
+            <View style={[ms.statusDot, { backgroundColor: C.green }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={ms.statusTitle}>Good Standing</Text>
+              <Text style={ms.statusSub}>No violations on your account</Text>
+            </View>
+            <View style={ms.badge}>
+              <Ionicons name="checkmark-circle" size={14} color={C.green} />
+              <Text style={ms.badgeText}>0 strikes</Text>
+            </View>
+          </View>
+
+          <View style={ms.strikeRow}>
+            {[
+              { label: 'Warning',        color: C.orange, desc: 'Post removed; account flagged'  },
+              { label: 'Temp Ban',       color: C.red,    desc: '7-day suspension from posting'  },
+              { label: 'Permanent Ban',  color: '#8B0000',desc: 'Account permanently restricted' },
+            ].map((st, i) => (
+              <View key={st.label} style={ms.strikeItem}>
+                <View style={[ms.strikeDot, { backgroundColor: st.color + '30', borderColor: st.color + '60' }]}>
+                  <Text style={[ms.strikeNum, { color: st.color }]}>{i + 1}</Text>
+                </View>
+                <Text style={ms.strikeLabel}>{st.label}</Text>
+                <Text style={ms.strikeDesc}>{st.desc}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={ms.infoRow}>
+            <Ionicons name="information-circle-outline" size={13} color={C.muted} />
+            <Text style={ms.infoText}>
+              Strikes are issued for misinformation, spam, or community guideline violations. Appeals can be sent to moderation@snapwild.in.
+            </Text>
+          </View>
+        </View>
+
         {/* Danger zone */}
         <View style={[s.sectionCard, { borderColor: C.red + '40' }]}>
           <View style={s.sectionHeader}>
@@ -289,4 +332,23 @@ const s = StyleSheet.create({
   deleteBtnText: { fontSize: 15, fontWeight: '700', color: C.bg },
 
   footer: { textAlign: 'center', fontSize: 11, color: C.muted, marginHorizontal: 16, marginTop: 4 },
+});
+
+const ms = StyleSheet.create({
+  statusRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.green + '12', borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: C.green + '30' },
+  statusDot:   { width: 12, height: 12, borderRadius: 6 },
+  statusTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  statusSub:   { fontSize: 11, color: C.muted, marginTop: 1 },
+  badge:       { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.green + '20', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
+  badgeText:   { fontSize: 11, fontWeight: '700', color: C.green },
+
+  strikeRow:   { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  strikeItem:  { flex: 1, alignItems: 'center', gap: 4 },
+  strikeDot:   { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  strikeNum:   { fontSize: 14, fontWeight: '800' },
+  strikeLabel: { fontSize: 10, fontWeight: '700', color: C.text, textAlign: 'center' },
+  strikeDesc:  { fontSize: 9, color: C.muted, textAlign: 'center', lineHeight: 13 },
+
+  infoRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  infoText:    { flex: 1, fontSize: 11, color: C.muted, lineHeight: 17 },
 });

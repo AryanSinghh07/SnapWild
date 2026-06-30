@@ -206,6 +206,9 @@ export default function HealthScreen({ navigation }) {
           )}
         </View>
 
+        {/* Mood Trend Chart */}
+        <MoodTrendChart weekly={weekly} />
+
         {/* Weekly Steps Chart */}
         <SectionHeader title="This Week" />
         <View style={s.chartCard}>
@@ -258,6 +261,103 @@ export default function HealthScreen({ navigation }) {
 }
 
 // ── Sub-components ──────────────────────────────────────────────
+
+const MOOD_SCORES = { '😔': 1, '😐': 2, '🙂': 3, '😊': 4, '🤩': 5 };
+const CHART_MAX_H = 56;
+
+function MoodTrendChart({ weekly }) {
+  const days = weekly.map(d => ({
+    label:  d.label,
+    before: MOOD_SCORES[d.mood_before] ?? 0,
+    after:  MOOD_SCORES[d.mood_after]  ?? 0,
+  }));
+
+  const hasMood = days.some(d => d.before > 0 || d.after > 0);
+
+  const totalBefore = days.reduce((a, d) => a + d.before, 0);
+  const totalAfter  = days.reduce((a, d) => a + d.after,  0);
+  const logged      = days.filter(d => d.before > 0).length;
+  const avgImprove  = logged > 0 ? ((totalAfter - totalBefore) / logged).toFixed(1) : null;
+
+  if (!hasMood) {
+    return (
+      <View style={mt.empty}>
+        <Text style={mt.emptyEmoji}>😐</Text>
+        <Text style={mt.emptyText}>Log your mood before & after sessions to see your trend here</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={mt.card}>
+      <View style={mt.header}>
+        <Ionicons name="happy-outline" size={18} color={C.accent} />
+        <Text style={mt.title}>Mood Trend — 7 Days</Text>
+        {avgImprove !== null && (
+          <View style={[mt.improveBadge, { backgroundColor: parseFloat(avgImprove) >= 0 ? C.green + '25' : C.red + '20' }]}>
+            <Text style={[mt.improveText, { color: parseFloat(avgImprove) >= 0 ? C.green : C.red }]}>
+              {parseFloat(avgImprove) >= 0 ? '+' : ''}{avgImprove} avg
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={mt.chartRow}>
+        {days.map((d, i) => {
+          const bH = d.before > 0 ? Math.max((d.before / 5) * CHART_MAX_H, 4) : 4;
+          const aH = d.after  > 0 ? Math.max((d.after  / 5) * CHART_MAX_H, 4) : 4;
+          const improved = d.after > d.before;
+          const afterCol = d.after > 0 ? (improved ? C.green : C.orange) : C.border;
+
+          return (
+            <View key={d.label + i} style={mt.col}>
+              <View style={mt.barGroup}>
+                <View style={[mt.bar, { height: bH, backgroundColor: d.before > 0 ? C.muted + '80' : C.border }]} />
+                <View style={[mt.bar, { height: aH, backgroundColor: afterCol }]} />
+              </View>
+              <Text style={mt.dayLabel}>{d.label.slice(0, 1)}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <View style={mt.legend}>
+        <View style={mt.legendRow}>
+          <View style={[mt.legendDot, { backgroundColor: C.muted + '80' }]} />
+          <Text style={mt.legendText}>Before</Text>
+        </View>
+        <View style={mt.legendRow}>
+          <View style={[mt.legendDot, { backgroundColor: C.green }]} />
+          <Text style={mt.legendText}>After (improved)</Text>
+        </View>
+        <View style={mt.legendRow}>
+          <View style={[mt.legendDot, { backgroundColor: C.orange }]} />
+          <Text style={mt.legendText}>After (lower)</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const mt = StyleSheet.create({
+  card:         { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: C.border },
+  header:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  title:        { fontSize: 15, fontWeight: '700', color: C.text, flex: 1 },
+  improveBadge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  improveText:  { fontSize: 11, fontWeight: '700' },
+  chartRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 },
+  col:          { alignItems: 'center', flex: 1 },
+  barGroup:     { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: CHART_MAX_H + 4, justifyContent: 'center' },
+  bar:          { width: 10, borderRadius: 4 },
+  dayLabel:     { fontSize: 9, color: C.muted, fontWeight: '600', marginTop: 4 },
+  legend:       { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  legendRow:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendDot:    { width: 8, height: 8, borderRadius: 4 },
+  legendText:   { fontSize: 10, color: C.muted },
+  empty:        { backgroundColor: C.card, marginHorizontal: 16, borderRadius: 18, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: C.border, alignItems: 'center', flexDirection: 'row', gap: 12 },
+  emptyEmoji:   { fontSize: 28 },
+  emptyText:    { flex: 1, fontSize: 12, color: C.muted, lineHeight: 18 },
+});
 
 function WeeklyReport({ weekly }) {
   const totalSteps   = weekly.reduce((a, d) => a + (d.steps   ?? 0), 0);
