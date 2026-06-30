@@ -25,6 +25,11 @@ export default create(
       })),
 
       getEmergencyContact: () => get().emergencyContact,
+
+      verified:       false,
+      verifiedPhone:  null,
+      setVerified:    (phone) => set({ verified: true,  verifiedPhone: phone }),
+      clearVerified:  ()      => set({ verified: false, verifiedPhone: null }),
     }),
     {
       name:    'snapwild-safety-v1',

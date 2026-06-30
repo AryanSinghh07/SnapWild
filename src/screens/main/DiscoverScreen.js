@@ -263,6 +263,21 @@ export default function DiscoverScreen({ navigation }) {
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </TouchableOpacity>
 
+      {/* Pet-Friendly Spots shortcut */}
+      <SectionHeader title="Pet-Friendly Spots" link="Open" onLink={() => navigation.navigate('PetSpots')} />
+      <TouchableOpacity style={s.leaderCard} activeOpacity={0.85} onPress={() => navigation.navigate('PetSpots')}>
+        <View style={s.leaderLeft}>
+          <View style={[s.leaderIconBox, { backgroundColor: C.blue + '20' }]}>
+            <Ionicons name="map" size={22} color={C.blue} />
+          </View>
+          <View>
+            <Text style={s.leaderTitle}>Community Map · Meetup Spots</Text>
+            <Text style={s.leaderSub}>Parks · Cafes · Beaches · Trails near you</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+      </TouchableOpacity>
+
       {/* Rare & Legendary catches (4.9.6) */}
       <SectionHeader title="Your Rare Catches" link="See all" onLink={() => navigation.getParent()?.navigate('Collection')} />
       {rareCatches.length > 0 ? (

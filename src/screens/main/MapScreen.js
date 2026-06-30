@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions,
 } from 'react-native';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import MapView, { Marker, Callout, Circle } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import useCatchStore   from '../../store/useCatchStore';
@@ -67,6 +67,24 @@ export default function MapScreen({ navigation }) {
     .filter(p => p.coords != null)
     .slice(0, 30);
 
+  const heatData = React.useMemo(() => {
+    const counts = {};
+    posts.forEach(p => {
+      const loc = (p.location ?? '') + ' ' + (p.city ?? '');
+      for (const city of Object.keys(CITY_COORDS)) {
+        if (loc.toLowerCase().includes(city.toLowerCase())) {
+          counts[city] = (counts[city] ?? 0) + 1;
+          break;
+        }
+      }
+    });
+    return Object.entries(counts).map(([city, count]) => ({
+      city,
+      count,
+      coords: CITY_COORDS[city],
+    }));
+  }, [posts]);
+
   const flyTo = (lat, lng) => {
     mapRef.current?.animateToRegion({ latitude: lat, longitude: lng, latitudeDelta: 0.05, longitudeDelta: 0.05 }, 600);
   };
@@ -78,20 +96,21 @@ export default function MapScreen({ navigation }) {
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color={C.text} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>{mapMode === 'my' ? 'Catch Map' : 'Rare Sightings'}</Text>
+        <Text style={s.headerTitle}>
+          {mapMode === 'my' ? 'Catch Map' : mapMode === 'community' ? 'Rare Sightings' : 'Heatmap'}
+        </Text>
         <View style={s.modeToggle}>
-          <TouchableOpacity
-            style={[s.modeBtn, mapMode === 'my' && s.modeBtnActive]}
-            onPress={() => setMapMode('my')}
-          >
-            <Text style={[s.modeBtnText, mapMode === 'my' && s.modeBtnTextActive]}>Mine</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[s.modeBtn, mapMode === 'community' && s.modeBtnActive]}
-            onPress={() => setMapMode('community')}
-          >
-            <Text style={[s.modeBtnText, mapMode === 'community' && s.modeBtnTextActive]}>Rare</Text>
-          </TouchableOpacity>
+          {['my', 'community', 'heat'].map(mode => (
+            <TouchableOpacity
+              key={mode}
+              style={[s.modeBtn, mapMode === mode && s.modeBtnActive]}
+              onPress={() => setMapMode(mode)}
+            >
+              <Text style={[s.modeBtnText, mapMode === mode && s.modeBtnTextActive]}>
+                {mode === 'my' ? 'Mine' : mode === 'community' ? 'Rare' : 'Heat'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -140,6 +159,28 @@ export default function MapScreen({ navigation }) {
             );
           })}
 
+          {mapMode === 'heat' && heatData.map(({ city, count, coords }) => (
+            <React.Fragment key={city}>
+              <Circle
+                center={{ latitude: coords.lat, longitude: coords.lng }}
+                radius={20000 + count * 25000}
+                strokeColor={C.orange + '90'}
+                fillColor={C.orange + '30'}
+                strokeWidth={1}
+              />
+              <Marker
+                key={`hm_${city}`}
+                coordinate={{ latitude: coords.lat, longitude: coords.lng }}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <View style={s.heatLabel}>
+                  <Text style={s.heatLabelText}>{city}</Text>
+                  <Text style={s.heatLabelCount}>{count}</Text>
+                </View>
+              </Marker>
+            </React.Fragment>
+          ))}
+
           {mapMode === 'community' && rarePosts.map((p, i) => {
             const color = RARITY_COLOR[p.rarity] ?? C.gray;
             return (
@@ -173,6 +214,29 @@ export default function MapScreen({ navigation }) {
           <Ionicons name="locate" size={20} color={C.text} />
         </TouchableOpacity>
       </View>
+
+      {/* Heatmap legend */}
+      {mapMode === 'heat' && (
+        <View style={[s.list, { paddingBottom: insets.bottom + 10 }]}>
+          <Text style={s.listTitle}>Species Density — India ({heatData.reduce((a, d) => a + d.count, 0)} sightings)</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+            {heatData.sort((a, b) => b.count - a.count).map(({ city, count }) => (
+              <TouchableOpacity
+                key={city}
+                style={[s.catchChip, { borderColor: C.orange + '80' }]}
+                onPress={() => {
+                  const c = CITY_COORDS[city];
+                  mapRef.current?.animateToRegion({ latitude: c.lat, longitude: c.lng, latitudeDelta: 2, longitudeDelta: 2 }, 600);
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>🔥</Text>
+                <Text style={s.catchChipName} numberOfLines={1}>{city}</Text>
+                <Text style={{ fontSize: 10, color: C.orange, fontWeight: '700' }}>{count}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Empty state overlay */}
       {mapMode === 'my' && pinCatches.length === 0 && (
@@ -276,4 +340,8 @@ const s = StyleSheet.create({
   catchChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1 },
   catchDot:  { width: 8, height: 8, borderRadius: 4 },
   catchChipName: { fontSize: 12, color: C.text, fontWeight: '600', maxWidth: 100 },
+
+  heatLabel:      { backgroundColor: C.card + 'EE', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3, alignItems: 'center', borderWidth: 1, borderColor: C.orange + '60' },
+  heatLabelText:  { fontSize: 9,  fontWeight: '700', color: C.text },
+  heatLabelCount: { fontSize: 11, fontWeight: '900', color: C.orange },
 });

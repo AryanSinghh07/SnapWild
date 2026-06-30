@@ -27,10 +27,42 @@ export default function SafetySettingsScreen({ navigation }) {
   const setIsMinor          = useSafetyStore(s => s.setIsMinor);
   const locationSharing     = useSafetyStore(s => s.locationSharing);
   const setLocationSharing  = useSafetyStore(s => s.setLocationSharing);
+  const verified            = useSafetyStore(s => s.verified);
+  const verifiedPhone       = useSafetyStore(s => s.verifiedPhone);
+  const setVerified         = useSafetyStore(s => s.setVerified);
+  const clearVerified       = useSafetyStore(s => s.clearVerified);
 
   const [showContactModal, setShowContactModal] = React.useState(false);
   const [draftName,  setDraftName]  = React.useState('');
   const [draftPhone, setDraftPhone] = React.useState('');
+
+  const [otpStep,       setOtpStep]       = React.useState('idle'); // idle | phone | otp | done
+  const [otpPhone,      setOtpPhone]      = React.useState('');
+  const [otpCode,       setOtpCode]       = React.useState('');
+  const [otpSending,    setOtpSending]    = React.useState(false);
+
+  function handleSendOTP() {
+    const p = otpPhone.trim().replace(/\s+/g, '');
+    if (p.length < 10) { Alert.alert('Enter a valid phone number (10+ digits)'); return; }
+    setOtpSending(true);
+    setTimeout(() => {
+      setOtpSending(false);
+      setOtpStep('otp');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 1200);
+  }
+
+  function handleVerifyOTP() {
+    if (otpCode.trim() !== '123456') {
+      Alert.alert('Incorrect OTP', 'Enter the 6-digit code sent to your number.\n(Demo: use 123456)');
+      return;
+    }
+    setVerified(otpPhone.trim());
+    setOtpStep('idle');
+    setOtpPhone('');
+    setOtpCode('');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
 
   function openContactModal() {
     setDraftName(emergencyContact?.name  ?? '');
@@ -185,6 +217,101 @@ export default function SafetySettingsScreen({ navigation }) {
             <View style={s.minorBanner}>
               <Ionicons name="shield-checkmark" size={14} color={C.orange} />
               <Text style={s.minorBannerText}>Minor protection is active. Meetup requests from adult accounts are blocked.</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Verified Badge */}
+        <View style={s.sectionCard}>
+          <View style={s.sectionHeader}>
+            <Ionicons name="checkmark-circle" size={18} color={C.blue} />
+            <Text style={s.sectionTitle}>Verified Badge</Text>
+            {verified && (
+              <View style={vf.badge}>
+                <Ionicons name="checkmark-circle" size={12} color="#fff" />
+                <Text style={vf.badgeText}>Verified</Text>
+              </View>
+            )}
+          </View>
+
+          {verified ? (
+            <View>
+              <View style={vf.verifiedRow}>
+                <View style={vf.verifiedIconBox}>
+                  <Ionicons name="checkmark-circle" size={28} color={C.blue} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={vf.verifiedTitle}>Phone Verified</Text>
+                  <Text style={vf.verifiedPhone}>{verifiedPhone}</Text>
+                </View>
+              </View>
+              <Text style={s.infoText}>Your profile shows a verified badge visible to the community.</Text>
+              <TouchableOpacity
+                style={[s.testSOSBtn, { borderColor: C.red + '40', marginTop: 12, marginBottom: 0 }]}
+                onPress={() => Alert.alert(
+                  'Remove Verified Badge?',
+                  'Your verified badge will be removed.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Remove', style: 'destructive', onPress: () => { clearVerified(); Haptics.selectionAsync(); } },
+                  ]
+                )}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="trash-outline" size={16} color={C.red} />
+                <Text style={[s.testSOSText]}>Remove Verification</Text>
+              </TouchableOpacity>
+            </View>
+          ) : otpStep === 'idle' ? (
+            <TouchableOpacity style={vf.getVerifiedBtn} onPress={() => setOtpStep('phone')} activeOpacity={0.85}>
+              <Ionicons name="phone-portrait-outline" size={18} color={C.blue} />
+              <View style={{ flex: 1 }}>
+                <Text style={vf.getVerifiedTitle}>Get Verified</Text>
+                <Text style={vf.getVerifiedSub}>Verify your phone number to earn a trust badge</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.muted} />
+            </TouchableOpacity>
+          ) : otpStep === 'phone' ? (
+            <View>
+              <Text style={s.inputLabel}>Phone Number</Text>
+              <TextInput
+                style={s.input}
+                placeholder="+91 98765 43210"
+                placeholderTextColor={C.muted}
+                value={otpPhone}
+                onChangeText={setOtpPhone}
+                keyboardType="phone-pad"
+              />
+              <TouchableOpacity
+                style={[s.saveBtn, otpSending && { opacity: 0.6 }]}
+                onPress={handleSendOTP}
+                disabled={otpSending}
+                activeOpacity={0.85}
+              >
+                <Text style={s.saveBtnText}>{otpSending ? 'Sending OTP…' : 'Send OTP'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setOtpStep('idle')} style={{ marginTop: 10, alignItems: 'center' }}>
+                <Text style={{ color: C.muted, fontSize: 13 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
+              <Text style={s.inputLabel}>Enter 6-digit OTP sent to {otpPhone}</Text>
+              <TextInput
+                style={s.input}
+                placeholder="123456"
+                placeholderTextColor={C.muted}
+                value={otpCode}
+                onChangeText={v => setOtpCode(v.slice(0, 6))}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+              <TouchableOpacity style={s.saveBtn} onPress={handleVerifyOTP} activeOpacity={0.85}>
+                <Text style={s.saveBtnText}>Verify & Get Badge</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setOtpStep('phone')} style={{ marginTop: 10, alignItems: 'center' }}>
+                <Text style={{ color: C.accent, fontSize: 13 }}>Resend OTP</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -349,4 +476,16 @@ const s = StyleSheet.create({
   input:      { backgroundColor: C.bg, borderRadius: 12, padding: 14, color: C.text, fontSize: 14, borderWidth: 1, borderColor: C.border, marginBottom: 14 },
   saveBtn:    { backgroundColor: C.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   saveBtnText:{ fontSize: 16, fontWeight: '700', color: C.bg },
+});
+
+const vf = StyleSheet.create({
+  badge:          { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.blue, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, marginLeft: 'auto' },
+  badgeText:      { fontSize: 10, fontWeight: '700', color: '#fff' },
+  verifiedRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.blue + '10', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: C.blue + '30' },
+  verifiedIconBox:{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.blue + '20', alignItems: 'center', justifyContent: 'center' },
+  verifiedTitle:  { fontSize: 14, fontWeight: '700', color: C.text },
+  verifiedPhone:  { fontSize: 12, color: C.muted, marginTop: 2 },
+  getVerifiedBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.bg, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: C.border },
+  getVerifiedTitle:{ fontSize: 14, fontWeight: '700', color: C.text },
+  getVerifiedSub: { fontSize: 11, color: C.muted, marginTop: 2 },
 });

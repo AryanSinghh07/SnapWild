@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking, Modal, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -41,20 +41,48 @@ export default function MeetupScreen({ route, navigation }) {
   const emergencyContact   = useSafetyStore(s => s.emergencyContact);
   const logSOS             = useSafetyStore(s => s.logSOS);
 
-  // Auto safety check at 30 seconds (demo stand-in for 30 minutes)
+  const [checkInVisible,   setCheckInVisible]   = React.useState(false);
+  const [checkInCountdown, setCheckInCountdown] = React.useState(60);
+  const countdownRef = React.useRef(null);
+
+  // Show check-in modal 30 s into meetup (30 min in prod)
   React.useEffect(() => {
-    const id = setTimeout(() => {
-      Alert.alert(
-        '🛡️ Safety Check-in',
-        'Are you and your pet safe?',
-        [
-          { text: "Yes, all good! 👍", onPress: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success) },
-          { text: 'Need help', style: 'destructive', onPress: () => Linking.openURL(`tel:${vet.phone}`) },
-        ]
-      );
+    const trigger = setTimeout(() => {
+      setCheckInCountdown(60);
+      setCheckInVisible(true);
     }, 30_000);
-    return () => clearTimeout(id);
+    return () => clearTimeout(trigger);
   }, []);
+
+  // Countdown inside modal — if it hits 0, auto-trigger SOS
+  React.useEffect(() => {
+    if (!checkInVisible) return;
+    countdownRef.current = setInterval(() => {
+      setCheckInCountdown(n => {
+        if (n <= 1) {
+          clearInterval(countdownRef.current);
+          setCheckInVisible(false);
+          logSOS('Auto check-in: no response within 60 s');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          const buttons = [{ text: 'OK' }];
+          if (emergencyContact) {
+            buttons.push({ text: `Call ${emergencyContact.name}`, onPress: () => Linking.openURL(`tel:${emergencyContact.phone}`) });
+          }
+          buttons.push({ text: 'Call 112', style: 'destructive', onPress: () => Linking.openURL('tel:112') });
+          Alert.alert(
+            '🚨 Safety Alert Triggered',
+            emergencyContact
+              ? `No response detected.\nYour emergency contact has been logged:\n${emergencyContact.name}: ${emergencyContact.phone}`
+              : 'No response detected. Please call emergency services.',
+            buttons
+          );
+          return 0;
+        }
+        return n - 1;
+      });
+    }, 1000);
+    return () => clearInterval(countdownRef.current);
+  }, [checkInVisible]);
 
   if (!meetup) {
     return (
@@ -221,6 +249,45 @@ export default function MeetupScreen({ route, navigation }) {
         </View>
 
       </ScrollView>
+
+      {/* Auto check-in countdown modal */}
+      <Modal visible={checkInVisible} transparent animationType="fade">
+        <Pressable style={ci.overlay}>
+          <View style={ci.card}>
+            <Ionicons name="shield-checkmark" size={36} color={C.green} style={{ marginBottom: 8 }} />
+            <Text style={ci.title}>Safety Check-in</Text>
+            <Text style={ci.sub}>Are you and your pet safe?</Text>
+            <View style={ci.countdown}>
+              <Text style={ci.countdownNum}>{checkInCountdown}</Text>
+              <Text style={ci.countdownLabel}>seconds</Text>
+            </View>
+            <Text style={ci.warning}>SOS will trigger automatically if no response</Text>
+            <TouchableOpacity
+              style={ci.safeBtn}
+              onPress={() => {
+                clearInterval(countdownRef.current);
+                setCheckInVisible(false);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="checkmark-circle" size={20} color={C.bg} />
+              <Text style={ci.safeBtnText}>Yes, I'm Safe!</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={ci.helpBtn}
+              onPress={() => {
+                clearInterval(countdownRef.current);
+                setCheckInVisible(false);
+                handleSOS();
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={ci.helpBtnText}>Need Help 🚨</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -282,4 +349,19 @@ const s = StyleSheet.create({
 
   sosBtn:     { position: 'absolute', right: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.red, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, zIndex: 10, elevation: 10 },
   sosBtnText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+});
+
+const ci = StyleSheet.create({
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  card:           { backgroundColor: C.card, borderRadius: 24, padding: 28, alignItems: 'center', width: '100%', borderWidth: 1, borderColor: C.green + '60', gap: 8 },
+  title:          { fontSize: 20, fontWeight: '800', color: C.text },
+  sub:            { fontSize: 14, color: C.muted, textAlign: 'center' },
+  countdown:      { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginVertical: 8 },
+  countdownNum:   { fontSize: 52, fontWeight: '900', color: C.orange },
+  countdownLabel: { fontSize: 14, color: C.muted, fontWeight: '600' },
+  warning:        { fontSize: 11, color: C.red, textAlign: 'center' },
+  safeBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.green, borderRadius: 14, paddingVertical: 14, width: '100%', marginTop: 8 },
+  safeBtnText:    { fontSize: 16, fontWeight: '700', color: C.bg },
+  helpBtn:        { paddingVertical: 10, width: '100%', alignItems: 'center' },
+  helpBtnText:    { fontSize: 14, fontWeight: '600', color: C.red },
 });
